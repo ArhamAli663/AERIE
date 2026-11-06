@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -922,7 +922,7 @@ namespace AERIE.Infrastructure.Persistence.Migrations
                 table: "daily_flock_records",
                 column: "ClientRecordId",
                 unique: true,
-                filter: "client_record_id IS NOT NULL");
+                filter: "\"ClientRecordId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_deal_expenses_SettlementId",

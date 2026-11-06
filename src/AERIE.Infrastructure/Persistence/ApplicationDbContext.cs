@@ -147,7 +147,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             e.ToTable("daily_flock_records");
             e.HasQueryFilter(r => r.TenantId == _tenantContext.TenantId);
             // Idempotency: unique client record ID prevents duplicate sync submissions
-            e.HasIndex(r => r.ClientRecordId).IsUnique().HasFilter("client_record_id IS NOT NULL");
+            e.HasIndex(r => r.ClientRecordId).IsUnique().HasFilter("\"ClientRecordId\" IS NOT NULL");
             e.HasIndex(r => new { r.BatchId, r.RecordDate });
             e.Property(r => r.FeedConsumedKg).HasColumnType("numeric(10,3)");
             e.Property(r => r.WaterConsumedLiters).HasColumnType("numeric(10,3)");
@@ -278,6 +278,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
         {
             e.ToTable("market_prices");
             e.Property(mp => mp.PricePerKg).HasColumnType("numeric(10,2)");
+            e.Property(mp => mp.PreviousPricePerKg).HasColumnType("numeric(10,2)");
+        });
+
+        builder.Entity<PoultryShop>(e =>
+        {
+            e.ToTable("poultry_shops");
+            e.Property(s => s.DailyCapacityKg).HasColumnType("numeric(10,2)");
+            e.Property(s => s.CurrentBroilerMeatRatePerKg).HasColumnType("numeric(10,2)");
+            e.Property(s => s.CurrentLiveBroilerBuyRatePerKg).HasColumnType("numeric(10,2)");
         });
 
         // ── Notifications & Audit ─────────────────────────────────────────
