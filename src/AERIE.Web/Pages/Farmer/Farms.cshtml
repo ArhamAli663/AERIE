@@ -1,0 +1,360 @@
+@page
+@model AERIE.Web.Pages.Farmer.FarmsModel
+@{
+    ViewData["Title"] = "Farms & Poultry Sheds";
+}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <div>
+        <h2 style="font-weight: 700; letter-spacing: -0.5px; margin-bottom: 0.25rem;">Farms & Poultry Sheds</h2>
+        <p style="color: var(--color-text-muted); font-size: 0.95rem; margin: 0;">
+            Register poultry production sites, configure houses, and monitor capacity utilization.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+        <button type="button" class="btn-stitch-secondary" data-bs-toggle="modal" data-bs-target="#newHouseModal">
+            + Add Shed
+        </button>
+        <button type="button" class="btn-stitch-primary" data-bs-toggle="modal" data-bs-target="#newFarmModal">
+            + Register Farm
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success" style="border-radius: var(--radius-md); font-size: 0.9rem;">
+        @Model.StatusMessage
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" style="border-radius: var(--radius-md); font-size: 0.9rem; margin-bottom: 1rem;">
+        @Model.ErrorMessage
+    </div>
+}
+
+<div class="panel-card" style="margin-bottom: 2rem;">
+    <div class="panel-header">
+        <h3 class="panel-title">Registered Farms</h3>
+        <span style="font-size: 0.85rem; color: var(--color-text-muted);">@Model.Farms.Count total farms</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Farm Name</th>
+                    <th>Location</th>
+                    <th>Capacity</th>
+                    <th>Houses / Sheds</th>
+                    <th>Active Batches</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var farm in Model.Farms)
+                {
+                    <tr>
+                        <td>
+                            <strong>@farm.Name</strong>
+                            <div style="font-size: 0.75rem; color: var(--color-text-muted);">@farm.ContactPhone</div>
+                        </td>
+                        <td>@farm.City, @farm.Province</td>
+                        <td>@farm.TotalCapacity.ToString("N0") birds</td>
+                        <td><span class="badge badge-primary">@farm.HouseCount sheds</span></td>
+                        <td><span class="badge badge-success">@farm.ActiveBatchCount active</span></td>
+                        <td>
+                            @if (farm.IsActive)
+                            {
+                                <span class="badge badge-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-secondary">Inactive</span>
+                            }
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        data-bs-toggle="modal" data-bs-target="#editFarmModal"
+                                        onclick="setEditFarm('@farm.Id', '@farm.Name', '@farm.Location', '@farm.City', '@farm.Province', @farm.TotalCapacity, '@farm.ContactPhone', @farm.IsActive.ToString().ToLower())">
+                                    Edit
+                                </button>
+                                @if (farm.IsActive)
+                                {
+                                    <form method="post" asp-page-handler="DeactivateFarm" onsubmit="return confirm('Safe Deactivate: Are you sure you want to deactivate @farm.Name? Historical records are preserved.');" style="display:inline;">
+                                        <input type="hidden" name="farmId" value="@farm.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="panel-card">
+    <div class="panel-header">
+        <h3 class="panel-title">Poultry Sheds / Houses</h3>
+        <span style="font-size: 0.85rem; color: var(--color-text-muted);">@Model.Houses.Count configured sheds</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Shed Name / ID</th>
+                    <th>Parent Farm</th>
+                    <th>Capacity</th>
+                    <th>Active Batches</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Houses.Any())
+                {
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--color-text-muted); padding: 2rem;">
+                            No poultry sheds registered yet. Click "+ Add Shed" above to set up a house.
+                        </td>
+                    </tr>
+                }
+                @foreach (var house in Model.Houses)
+                {
+                    <tr>
+                        <td><strong>@house.Name</strong></td>
+                        <td>@house.FarmName</td>
+                        <td>@house.Capacity.ToString("N0") birds</td>
+                        <td><span class="badge badge-primary">@house.ActiveBatchCount active</span></td>
+                        <td>
+                            @if (house.IsActive)
+                            {
+                                <span class="badge badge-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-secondary">Inactive</span>
+                            }
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        data-bs-toggle="modal" data-bs-target="#editHouseModal"
+                                        onclick="setEditHouse('@house.Id', '@house.Name', @house.Capacity, @house.IsActive.ToString().ToLower())">
+                                    Edit
+                                </button>
+                                @if (house.IsActive)
+                                {
+                                    <form method="post" asp-page-handler="DeactivateHouse" onsubmit="return confirm('Safe Deactivate: Are you sure you want to deactivate @house.Name?');" style="display:inline;">
+                                        <input type="hidden" name="houseId" value="@house.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: Register Farm -->
+<div class="modal fade" id="newFarmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: var(--radius-lg);">
+            <form method="post" asp-page-handler="CreateFarm">
+                <div class="modal-header">
+                    <h5 class="modal-title" style="font-weight: 600;">Register New Farm</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div>
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Farm Name</label>
+                        <input type="text" name="name" class="form-control" required placeholder="e.g. Al-Madina Farm #1" />
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Location / Address</label>
+                        <input type="text" name="location" class="form-control" required placeholder="e.g. Sheikhupura Road" />
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">City</label>
+                            <input type="text" name="city" class="form-control" required placeholder="Lahore" />
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Province</label>
+                            <input type="text" name="province" class="form-control" required placeholder="Punjab" />
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Total Bird Capacity</label>
+                            <input type="number" name="totalCapacity" class="form-control" required placeholder="25000" />
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Contact Phone</label>
+                            <input type="text" name="contactPhone" class="form-control" placeholder="03001234567" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-stitch-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-stitch-primary">Save Farm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Edit Farm -->
+<div class="modal fade" id="editFarmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: var(--radius-lg);">
+            <form method="post" asp-page-handler="UpdateFarm">
+                <input type="hidden" id="editFarmId" name="id" />
+                <div class="modal-header">
+                    <h5 class="modal-title" style="font-weight: 600;">Edit Farm Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div>
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Farm Name</label>
+                        <input type="text" id="editFarmName" name="name" class="form-control" required />
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Location / Address</label>
+                        <input type="text" id="editFarmLocation" name="location" class="form-control" required />
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">City</label>
+                            <input type="text" id="editFarmCity" name="city" class="form-control" />
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Province</label>
+                            <input type="text" id="editFarmProvince" name="province" class="form-control" />
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Total Bird Capacity</label>
+                            <input type="number" id="editFarmCapacity" name="totalCapacity" class="form-control" required />
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Contact Phone</label>
+                            <input type="text" id="editFarmPhone" name="contactPhone" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="editFarmIsActive" name="isActive" value="true" />
+                        <label class="form-check-label" for="editFarmIsActive">Active Operational Status</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-stitch-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-stitch-primary">Update Farm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add Shed -->
+<div class="modal fade" id="newHouseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: var(--radius-lg);">
+            <form method="post" asp-page-handler="CreateHouse">
+                <div class="modal-header">
+                    <h5 class="modal-title" style="font-weight: 600;">Add Poultry Shed</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div>
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Select Farm</label>
+                        <select name="farmId" class="form-select" required>
+                            @foreach (var f in Model.Farms)
+                            {
+                                <option value="@f.Id">@f.Name (@f.City)</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Shed Name / ID</label>
+                        <input type="text" name="name" class="form-control" required placeholder="e.g. Shed A (Environmentally Controlled)" />
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Bird Capacity</label>
+                        <input type="number" name="capacity" class="form-control" required placeholder="10000" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-stitch-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-stitch-primary">Save Shed</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Edit Shed -->
+<div class="modal fade" id="editHouseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: var(--radius-lg);">
+            <form method="post" asp-page-handler="UpdateHouse">
+                <input type="hidden" id="editHouseId" name="houseId" />
+                <div class="modal-header">
+                    <h5 class="modal-title" style="font-weight: 600;">Edit Poultry Shed</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div>
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Shed Name / ID</label>
+                        <input type="text" id="editHouseName" name="name" class="form-control" required />
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Bird Capacity</label>
+                        <input type="number" id="editHouseCapacity" name="capacity" class="form-control" required />
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="editHouseIsActive" name="isActive" value="true" />
+                        <label class="form-check-label" for="editHouseIsActive">Active Operational Status</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-stitch-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-stitch-primary">Update Shed</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function setEditFarm(id, name, location, city, province, capacity, phone, isActive) {
+        document.getElementById('editFarmId').value = id;
+        document.getElementById('editFarmName').value = name;
+        document.getElementById('editFarmLocation').value = location;
+        document.getElementById('editFarmCity').value = city;
+        document.getElementById('editFarmProvince').value = province;
+        document.getElementById('editFarmCapacity').value = capacity;
+        document.getElementById('editFarmPhone').value = phone;
+        document.getElementById('editFarmIsActive').checked = (isActive === true || isActive === 'true');
+    }
+
+    function setEditHouse(id, name, capacity, isActive) {
+        document.getElementById('editHouseId').value = id;
+        document.getElementById('editHouseName').value = name;
+        document.getElementById('editHouseCapacity').value = capacity;
+        document.getElementById('editHouseIsActive').checked = (isActive === true || isActive === 'true');
+    }
+</script>
+}

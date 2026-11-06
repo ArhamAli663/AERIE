@@ -1,0 +1,123 @@
+@page
+@model AERIE.Web.Pages.Auth.LoginModel
+@{
+    ViewData["Title"] = $"{Model.Role} Sign In";
+    Layout = "_Layout";
+    bool isBroker = Model.Role.Equals("Broker", StringComparison.OrdinalIgnoreCase);
+}
+
+<div style="max-width: 520px; margin: 2rem auto;">
+    <!-- Portal Header Banner -->
+    <div style="text-align: center; margin-bottom: 1.75rem;">
+        <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 16px; background: @(isBroker ? "#e0f2fe" : "#ecfdf5"); color: @(isBroker ? "#0284c7" : "#059669"); margin-bottom: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            @if (isBroker)
+            {
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+            }
+            else
+            {
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            }
+        </div>
+        <h2 style="font-weight: 700; font-size: 1.6rem; letter-spacing: -0.5px; margin-bottom: 0.25rem;">
+            @(isBroker ? "Poultry Broker & Trader Sign In" : "Poultry Farm & Producer Sign In")
+        </h2>
+        <p style="color: var(--color-text-muted); font-size: 0.9rem; margin: 0;">
+            @(isBroker 
+                ? "Access regional trading, marketplace deals, transport lifting & commission settlements."
+                : "Access farm shed management, flock batches, daily logs, and sale listings.")
+        </p>
+    </div>
+
+    <!-- Role Selection Tabs (Ask if Farmer or Broker) -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; background: var(--color-surface-hover); padding: 0.35rem; border-radius: var(--radius-lg); margin-bottom: 1.5rem; border: 1px solid var(--color-border);">
+        <a asp-page="/Auth/Login" asp-route-role="Farmer" 
+           style="text-align: center; padding: 0.65rem 1rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.9rem; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s;"
+           class="@(!isBroker ? "bg-white shadow-sm text-dark border" : "text-muted")">
+            <span>🐓</span>
+            <span>Poultry Farmer</span>
+        </a>
+        <a asp-page="/Auth/Login" asp-route-role="Broker" 
+           style="text-align: center; padding: 0.65rem 1rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.9rem; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s;"
+           class="@(isBroker ? "bg-white shadow-sm text-dark border" : "text-muted")">
+            <span>🚛</span>
+            <span>Poultry Broker</span>
+        </a>
+    </div>
+
+    <!-- Error Alert -->
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger" style="border-radius: var(--radius-md); font-size: 0.9rem; margin-bottom: 1.25rem;">
+            <strong>Error:</strong> @Model.ErrorMessage
+        </div>
+    }
+
+    <!-- Main Login Card -->
+    <div class="panel-card" style="box-shadow: 0 4px 20px rgba(0,0,0,0.06); border-radius: var(--radius-lg); padding: 1.75rem;">
+        <form method="post">
+            <input type="hidden" name="Role" value="@Model.Role" />
+            <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+
+            <div style="margin-bottom: 1.25rem;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--color-text-main);">
+                    Corporate / Account Email
+                </label>
+                <input type="email" name="Email" value="@Model.Email" required 
+                       class="form-control" 
+                       style="padding: 0.65rem 0.85rem; border-radius: var(--radius-md); font-size: 0.95rem;" 
+                       placeholder="@(isBroker ? "broker@aerie.pk" : "farmer@aerie.pk")" />
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                    <label style="font-size: 0.85rem; font-weight: 600; margin: 0; color: var(--color-text-main);">
+                        Password
+                    </label>
+                    <span style="font-size: 0.8rem; color: var(--color-text-subtle);">Demo default: Password123!</span>
+                </div>
+                <input type="password" name="Password" value="Password123!" required 
+                       class="form-control" 
+                       style="padding: 0.65rem 0.85rem; border-radius: var(--radius-md); font-size: 0.95rem;" 
+                       placeholder="Enter account password" />
+            </div>
+
+            <button type="submit" class="btn-stitch-primary" style="width: 100%; justify-content: center; padding: 0.75rem; font-size: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+                Sign In to @(isBroker ? "Broker" : "Farmer") Workspace
+            </button>
+        </form>
+
+        <!-- 1-Click Instant Demo Evaluation Login -->
+        <div style="border-top: 1px dashed var(--color-border); padding-top: 1.25rem; margin-top: 0.5rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                <span style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-muted);">
+                    Evaluation Quick-Access
+                </span>
+                <span class="badge @(isBroker ? "badge-primary" : "badge-success")">Verified Tenant</span>
+            </div>
+
+            <form method="post" asp-page-handler="DemoLogin">
+                <input type="hidden" name="targetRole" value="@Model.Role" />
+                <button type="submit" 
+                        class="btn-stitch-secondary" 
+                        style="width: 100%; justify-content: center; padding: 0.65rem; border-radius: var(--radius-md); font-weight: 600; background: @(isBroker ? "#f0f9ff" : "#f0fdf4"); border-color: @(isBroker ? "#bae6fd" : "#bbf7d0"); color: @(isBroker ? "#0369a1" : "#15803d");">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 0.35rem;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    ⚡ 1-Click Demo Login as @(isBroker ? "Punjab Poultry Traders (Broker)" : "Al-Madina Poultry Farms (Farmer)")
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Registration & Portal Switching Links -->
+    <div style="text-align: center; margin-top: 1.5rem;">
+        <p style="font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 0.75rem;">
+            Need a new account? 
+            <a asp-page="/Auth/Register" asp-route-role="@Model.Role" style="font-weight: 600; color: var(--color-primary); text-decoration: none;">
+                Register new @(isBroker ? "Brokerage Firm" : "Farm Company")
+            </a>
+        </p>
+        <a asp-page="/Index" style="font-size: 0.85rem; color: var(--color-text-subtle); text-decoration: none;">
+            ← Return to AERIE Portal Selection Gateway
+        </a>
+    </div>
+</div>

@@ -1,0 +1,187 @@
+@page
+@model AERIE.Web.Pages.Farmer.ListingsModel
+@{
+    ViewData["Title"] = "My Marketplace Listings & Proposals";
+}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <div>
+        <h2 style="font-weight: 700; letter-spacing: -0.5px; margin-bottom: 0.25rem;">My Marketplace Listings & Broker Proposals</h2>
+        <p style="color: var(--color-text-muted); font-size: 0.95rem; margin: 0;">
+            Review broker purchase bids, accept terms to create active trading deals, or adjust listing parameters.
+        </p>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success" style="border-radius: var(--radius-md); font-size: 0.9rem;">
+        @Model.StatusMessage
+    </div>
+}
+
+<div class="panel-card">
+    <div class="panel-header">
+        <h3 class="panel-title">Active & Published Listings</h3>
+        <span style="font-size: 0.85rem; color: var(--color-text-muted);">@Model.Listings.Count listings</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Title & Batch</th>
+                    <th>Location</th>
+                    <th>Offered Birds</th>
+                    <th>Available Remaining</th>
+                    <th>Asking Rate</th>
+                    <th>Status</th>
+                    <th>Published At</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Listings.Any())
+                {
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 3rem 1rem;">
+                            <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📦</div>
+                            <h5 style="font-weight: 600; margin-bottom: 0.25rem;">No Marketplace Listings Created Yet</h5>
+                            <p style="color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+                                When your flock reaches market age/weight, mark it as 'Ready for Sale' in Flock Batches to publish an offer to poultry brokers.
+                            </p>
+                            <a asp-page="/Farmer/Batches" class="btn-stitch-primary" style="text-decoration: none; display: inline-flex;">
+                                Go to Flock Batches &rarr;
+                            </a>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var l in Model.Listings)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@l.Title</strong>
+                                <div style="font-size: 0.75rem; color: var(--color-text-muted);">Batch: @l.BatchCode (@l.BreedName)</div>
+                            </td>
+                            <td>@l.LocationCity</td>
+                            <td>@l.QuantityTotal.ToString("N0") birds</td>
+                            <td>
+                                <strong style="color: var(--color-primary-dark);">@l.QuantityAvailable.ToString("N0")</strong> birds
+                            </td>
+                            <td><strong>Rs. @l.AskingPricePerKg / kg</strong></td>
+                            <td>
+                                @switch (l.Status)
+                                {
+                                    case "Published":
+                                        <span class="badge badge-success">Published</span>
+                                        break;
+                                    case "Reserved":
+                                        <span class="badge badge-warning">Reserved</span>
+                                        break;
+                                    case "Sold":
+                                        <span class="badge badge-primary">Sold Out</span>
+                                        break;
+                                    default:
+                                        <span class="badge badge-secondary">@l.Status</span>
+                                        break;
+                                }
+                            </td>
+                            <td>@(l.PublishedAt?.ToString("dd MMM yyyy HH:mm") ?? "--")</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Received Proposals Section -->
+<div class="panel-card">
+    <div class="panel-header">
+        <h3 class="panel-title">Received Broker Purchase Proposals</h3>
+        <span class="badge badge-primary">@Model.Proposals.Count bids</span>
+    </div>
+
+    @if (!Model.Proposals.Any())
+    {
+        <div style="padding: 2rem; text-align: center; color: var(--color-text-muted);">
+            No proposals submitted yet. Once brokers discover your published listings, their purchase proposals will appear here for your review and acceptance.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Brokerage Partner</th>
+                        <th>Target Listing</th>
+                        <th>Requested Quantity</th>
+                        <th>Offered Rate</th>
+                        <th>Transport Terms</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.Proposals)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@p.BrokerCompanyName</strong>
+                                <div style="font-size: 0.75rem; color: var(--color-text-muted);">Bid Time: @p.ProposedAt.ToString("dd MMM HH:mm")</div>
+                            </td>
+                            <td>@p.ListingTitle</td>
+                            <td><strong>@p.QuantityRequested.ToString("N0")</strong> birds</td>
+                            <td><strong style="color: var(--color-success);">Rs. @p.OfferedPricePerKg / kg</strong></td>
+                            <td>@(p.TransportArrangement ?? "Not specified")</td>
+                            <td>
+                                @switch (p.Status.ToString())
+                                {
+                                    case "Proposed":
+                                        <span class="badge badge-warning">Pending Review</span>
+                                        break;
+                                    case "Accepted":
+                                        <span class="badge badge-success">Accepted & Deal Active</span>
+                                        break;
+                                    case "Rejected":
+                                        <span class="badge badge-danger">Rejected</span>
+                                        break;
+                                    default:
+                                        <span class="badge badge-secondary">@p.Status</span>
+                                        break;
+                                }
+                            </td>
+                            <td>
+                                @if (p.Status.ToString() == "Proposed")
+                                {
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <form method="post" asp-page-handler="AcceptProposal" style="display: inline;">
+                                            <input type="hidden" name="proposalId" value="@p.Id" />
+                                            <button type="submit" class="btn btn-sm btn-success">
+                                                Accept & Reserve
+                                            </button>
+                                        </form>
+                                        <form method="post" asp-page-handler="RejectProposal" style="display: inline;">
+                                            <input type="hidden" name="proposalId" value="@p.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                Decline
+                                            </button>
+                                        </form>
+                                    </div>
+                                }
+                                else if (p.Status.ToString() == "Accepted")
+                                {
+                                    <a asp-page="/Broker/Deals" class="btn btn-sm btn-outline-primary">
+                                        View Active Deal →
+                                    </a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

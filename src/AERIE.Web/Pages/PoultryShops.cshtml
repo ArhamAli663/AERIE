@@ -1,0 +1,357 @@
+@page
+@model AERIE.Web.Pages.PoultryShopsModel
+@{
+    ViewData["Title"] = "Pakistan Poultry Shops & Mandi Outlets Directory";
+    var isBroker = User.IsInRole("Broker");
+    var isFarmer = User.IsInRole("Farmer");
+}
+
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-success text-white px-2 py-1">Google Verified Market Intelligence</span>
+            <span style="font-size: 0.85rem; color: var(--color-text-muted);">National Retail & Wholesale Network</span>
+        </div>
+        <h2 class="page-title mb-1">Pakistan Poultry Shops & Wholesale Outlets Directory</h2>
+        <p class="text-muted mb-0">
+            Real-time directory of wholesale mandi commission shops, retail chicken points, and corporate outlets across Pakistan. Analyze daily capacity, Google ratings, and shop prices.
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-primary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#addShopModal">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            + Register New Poultry Shop
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert">
+        <strong>Success:</strong> @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm" role="alert">
+        <strong>Error:</strong> @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Top Market Analytics KPI Summary -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100" style="border-left: 4px solid #0284c7 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-muted small fw-semibold text-uppercase">Active Shops Listed</span>
+                <span class="badge bg-primary-subtle text-primary">All Cities</span>
+            </div>
+            <div class="h2 fw-bold text-dark mb-1">@Model.TotalShopsCount</div>
+            <div class="small text-muted">Across <strong>@Model.AvailableCities.Count</strong> Pakistan trading districts</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100" style="border-left: 4px solid #16a34a !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-muted small fw-semibold text-uppercase">Avg Retail Meat Rate</span>
+                <span class="badge bg-success-subtle text-success">Consumer</span>
+            </div>
+            <div class="h2 fw-bold text-success mb-1">Rs. @Model.AvgBroilerMeatRate.ToString("F0") <span class="fs-6 fw-normal text-muted">/ kg</span></div>
+            <div class="small text-muted">National average across verified outlets</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100" style="border-left: 4px solid #f59e0b !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-muted small fw-semibold text-uppercase">Avg Live Buy Rate</span>
+                <span class="badge bg-warning-subtle text-warning-emphasis">Farm/Mandi</span>
+            </div>
+            <div class="h2 fw-bold text-dark mb-1">Rs. @Model.AvgLiveBroilerBuyRate.ToString("F0") <span class="fs-6 fw-normal text-muted">/ kg</span></div>
+            <div class="small text-muted">Average rate offered by mandi shops to farmers</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100" style="border-left: 4px solid #8b5cf6 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-muted small fw-semibold text-uppercase">Total Daily Demand</span>
+                <span class="badge bg-purple-subtle text-purple" style="background:#f3e8ff; color:#7e22ce;">Capacity</span>
+            </div>
+            <div class="h2 fw-bold text-dark mb-1">@((Model.TotalDailyCapacityKg / 1000m).ToString("F1")) <span class="fs-6 fw-normal text-muted">Tons/day</span></div>
+            <div class="small text-muted">Daily bird lifting capacity in network</div>
+        </div>
+    </div>
+</div>
+
+<!-- Interactive Search & Filters Bar -->
+<div class="card border-0 shadow-sm rounded-3 p-3 bg-white mb-4">
+    <div class="row g-2 align-items-center">
+        <div class="col-lg-5">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </span>
+                <input type="text" id="liveShopSearch" class="form-control border-start-0" 
+                       placeholder="Search shop name, market, owner, or city (e.g. Tollinton, Gunj Mandi, Lee Market, Al-Rehman)..." 
+                       value="@Model.SearchQuery" />
+            </div>
+        </div>
+        <div class="col-lg-3">
+            <select id="cityFilterSelect" class="form-select" onchange="filterShops()">
+                <option value="All">All Cities (@Model.AvailableCities.Count)</option>
+                @foreach (var c in Model.AvailableCities)
+                {
+                    <option value="@c" selected="@(Model.SelectedCity == c ? "selected" : null)">@c</option>
+                }
+            </select>
+        </div>
+        <div class="col-lg-3">
+            <select id="typeFilterSelect" class="form-select" onchange="filterShops()">
+                <option value="All">All Outlet Types</option>
+                <option value="Wholesale Mandi Shop" selected="@(Model.SelectedType == "Wholesale Mandi Shop" ? "selected" : null)">Wholesale Mandi Arhti</option>
+                <option value="Retail Chicken Point" selected="@(Model.SelectedType == "Retail Chicken Point" ? "selected" : null)">Retail Chicken Point</option>
+                <option value="Corporate Farm Outlet" selected="@(Model.SelectedType == "Corporate Farm Outlet" ? "selected" : null)">Corporate Farm Outlet</option>
+            </select>
+        </div>
+        <div class="col-lg-1">
+            <button type="button" class="btn btn-outline-secondary w-100" onclick="resetFilters()">Reset</button>
+        </div>
+    </div>
+</div>
+
+<!-- Poultry Shops Grid -->
+<div class="row g-3" id="shopsGrid">
+    @if (!Model.Shops.Any())
+    {
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-3 p-5 text-center bg-white">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏬</div>
+                <h5 class="fw-bold text-dark">No Poultry Shops Found</h5>
+                <p class="text-muted small mb-3">No shops matched your current search filters. Try resetting the filters or add a new shop.</p>
+                <div>
+                    <button type="button" class="btn btn-primary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#addShopModal">
+                        + Add Poultry Shop to Directory
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        @foreach (var shop in Model.Shops)
+        {
+            <div class="col-lg-4 col-md-6 shop-card-item" 
+                 data-city="@shop.City" 
+                 data-type="@shop.ShopType" 
+                 data-text="@($"{shop.Name} {shop.City} {shop.MarketName} {shop.Address} {shop.ContactPerson} {shop.Specialties}".ToLower())">
+                <div class="card border-0 shadow-sm rounded-3 h-100 bg-white p-3 hover-shadow transition">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <span class="badge @(shop.ShopType == "Wholesale Mandi Shop" ? "bg-primary-subtle text-primary" : (shop.ShopType == "Corporate Farm Outlet" ? "bg-purple-subtle text-purple" : "bg-success-subtle text-success")) rounded-pill" style="font-size: 0.72rem;">
+                                @shop.ShopType
+                            </span>
+                            <span class="badge bg-light text-dark border ms-1" style="font-size: 0.72rem;">@shop.City</span>
+                        </div>
+                        @if (shop.IsGoogleVerified)
+                        {
+                            <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1" style="font-size: 0.72rem;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                Google Verified
+                            </span>
+                        }
+                    </div>
+
+                    <h5 class="fw-bold text-dark mb-1" style="font-size: 1.05rem;">@shop.Name</h5>
+                    <div class="small text-muted mb-2">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1 text-danger"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                        <strong>@shop.MarketName</strong> &bull; @shop.Address
+                    </div>
+
+                    <!-- Google Reviews & Rating Bar -->
+                    <div class="d-flex align-items-center gap-2 mb-3 p-2 rounded-2 bg-light">
+                        <div class="d-flex align-items-center text-warning fw-bold small">
+                            ⭐ @shop.GoogleRating.ToString("F1")
+                        </div>
+                        <span class="text-muted small">(@shop.GoogleReviewsCount Google reviews)</span>
+                        <span class="ms-auto small text-muted">@shop.OperatingHours</span>
+                    </div>
+
+                    <!-- Price & Capacity Matrix -->
+                    <div class="row g-2 text-center mb-3">
+                        <div class="col-4">
+                            <div class="p-2 rounded bg-light border">
+                                <div class="text-muted" style="font-size: 0.7rem; text-transform: uppercase;">Daily Capacity</div>
+                                <strong class="text-primary small">@shop.DailyCapacityKg.ToString("N0") kg</strong>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded bg-light border">
+                                <div class="text-muted" style="font-size: 0.7rem; text-transform: uppercase;">Meat Price</div>
+                                <strong class="text-success small">Rs. @shop.CurrentBroilerMeatRatePerKg:N0</strong>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded bg-light border">
+                                <div class="text-muted" style="font-size: 0.7rem; text-transform: uppercase;">Live Buy Rate</div>
+                                <strong class="text-dark small">Rs. @shop.CurrentLiveBroilerBuyRatePerKg:N0</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="small text-muted mb-3 flex-grow-1" style="font-size: 0.8rem; line-height: 1.35;">
+                        <strong>Specialties:</strong> @shop.Specialties
+                        @if (!string.IsNullOrEmpty(shop.Notes))
+                        {
+                            <div class="mt-1 text-secondary"><em>@shop.Notes</em></div>
+                        }
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="pt-2 border-top d-flex justify-content-between align-items-center mt-auto">
+                        <div class="small">
+                            <span class="text-muted">Contact:</span> <strong>@shop.ContactPerson</strong>
+                        </div>
+                        <a href="tel:@shop.ContactPhone" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                            @shop.ContactPhone
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<!-- Modal: Register New Poultry Shop -->
+<div class="modal fade" id="addShopModal" tabindex="-1" aria-labelledby="addShopModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-page-handler="AddShop">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="addShopModalLabel">Register New Poultry Shop / Outlet</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label small fw-semibold">Shop / Outlet Name</label>
+                            <input type="text" name="name" class="form-control" required placeholder="e.g. Al-Madina Poultry & Meat Center" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Outlet Type</label>
+                            <select name="shopType" class="form-select">
+                                <option value="Wholesale Mandi Shop">Wholesale Mandi Shop (Arhti)</option>
+                                <option value="Retail Chicken Point">Retail Chicken Point</option>
+                                <option value="Corporate Farm Outlet">Corporate Farm Outlet</option>
+                                <option value="Processor / Distributor">Processor / Distributor</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">City</label>
+                            <input type="text" name="city" class="form-control" required placeholder="e.g. Lahore, Rawalpindi, Karachi" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Province</label>
+                            <select name="province" class="form-select">
+                                <option value="Punjab">Punjab</option>
+                                <option value="Sindh">Sindh</option>
+                                <option value="Khyber Pakhtunkhwa">Khyber Pakhtunkhwa</option>
+                                <option value="Balochistan">Balochistan</option>
+                                <option value="Islamabad Capital Territory">Islamabad Capital Territory</option>
+                                <option value="Azad Kashmir">Azad Kashmir</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Market / Mandi Name</label>
+                            <input type="text" name="marketName" class="form-control" placeholder="e.g. Tollinton Market, Gunj Mandi" />
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label small fw-semibold">Detailed Street Address</label>
+                            <input type="text" name="address" class="form-control" placeholder="e.g. Shop #12, Main Gate, Commercial Market" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Contact Person / Owner</label>
+                            <input type="text" name="contactPerson" class="form-control" placeholder="e.g. Chaudhry Tariq" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Phone / WhatsApp Number</label>
+                            <input type="text" name="contactPhone" class="form-control" required placeholder="+92 300 1234567" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Daily Capacity (kg/day)</label>
+                            <input type="number" step="100" name="dailyCapacityKg" class="form-control" value="2500" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Retail Meat Rate (Rs/kg)</label>
+                            <input type="number" step="1" name="currentBroilerMeatRatePerKg" class="form-control" value="560" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Live Bird Buy Rate (Rs/kg)</label>
+                            <input type="number" step="1" name="currentLiveBroilerBuyRatePerKg" class="form-control" value="345" />
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label small fw-semibold">Specialties / Services</label>
+                            <input type="text" name="specialties" class="form-control" placeholder="e.g. Whole bird dressing, boneless cuts, daily bulk hotel contracts" />
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label small fw-semibold">Additional Operational Notes</label>
+                            <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Fast bank transfer payment, owns 2 refrigerated vans for direct lifting"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4">Register Poultry Shop</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const searchInput = document.getElementById('liveShopSearch');
+    const citySelect = document.getElementById('cityFilterSelect');
+    const typeSelect = document.getElementById('typeFilterSelect');
+    const cards = document.querySelectorAll('.shop-card-item');
+
+    function filterShops() {
+        const query = searchInput.value.toLowerCase().trim();
+        const city = citySelect.value;
+        const type = typeSelect.value;
+
+        cards.forEach(card => {
+            const cardCity = card.getAttribute('data-city');
+            const cardType = card.getAttribute('data-type');
+            const cardText = card.getAttribute('data-text');
+
+            const matchesQuery = !query || cardText.includes(query);
+            const matchesCity = city === 'All' || cardCity.toLowerCase() === city.toLowerCase();
+            const matchesType = type === 'All' || cardType.toLowerCase() === type.toLowerCase();
+
+            if (matchesQuery && matchesCity && matchesType) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    searchInput.addEventListener('input', filterShops);
+
+    function resetFilters() {
+        searchInput.value = '';
+        citySelect.value = 'All';
+        typeSelect.value = 'All';
+        filterShops();
+    }
+</script>
+}

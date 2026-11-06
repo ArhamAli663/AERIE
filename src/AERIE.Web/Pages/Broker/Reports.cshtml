@@ -1,0 +1,139 @@
+@page
+@model AERIE.Web.Pages.Broker.ReportsModel
+@{
+    ViewData["Title"] = "Broker Financial Reports & Settlements";
+}
+
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="page-title mb-1">Trading Statements & Settlement Reports</h2>
+        <p class="text-muted mb-0">Audited settlement statements, gross trade values, broker commission earnings, and CSV export streaming.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-page-handler="ExportDealsCsv" class="btn btn-outline-primary btn-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Export Deals CSV
+        </a>
+        <a asp-page-handler="ExportLedgerCsv" class="btn btn-outline-success btn-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Export Ledger CSV
+        </a>
+        <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            Print Statement
+        </button>
+    </div>
+</div>
+
+<!-- Date Filter Form -->
+<div class="panel-card mb-4 p-3">
+    <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label small fw-semibold">Reporting Start Date</label>
+            <input type="date" name="FromDate" class="form-control" value="@(Model.FromDate?.ToString("yyyy-MM-dd") ?? DateTime.UtcNow.AddMonths(-1).ToString("yyyy-MM-dd"))" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label small fw-semibold">Reporting End Date</label>
+            <input type="date" name="ToDate" class="form-control" value="@(Model.ToDate?.ToString("yyyy-MM-dd") ?? DateTime.UtcNow.ToString("yyyy-MM-dd"))" />
+        </div>
+        <div class="col-md-4">
+            <button type="submit" class="btn btn-primary w-100">Filter Statements</button>
+        </div>
+    </form>
+</div>
+
+<!-- Financial Summary KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-label">Settled Contracts</div>
+            <div class="metric-value">@Model.TotalDealsCount</div>
+            <div class="metric-subtext text-muted">In selected reporting window</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-label">Total Gross Traded</div>
+            <div class="metric-value" style="font-size: 1.5rem;">Rs. @Model.TotalTradedGross.ToString("N0")</div>
+            <div class="metric-subtext text-muted">Aggregated trade valuation</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card border-success">
+            <div class="metric-label">Broker Commission Realized</div>
+            <div class="metric-value text-success" style="font-size: 1.5rem;">Rs. @Model.TotalCommissionEarned.ToString("N2")</div>
+            <div class="metric-subtext text-success">Net brokerage earnings</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-label">Farmer Payouts Settled</div>
+            <div class="metric-value text-primary" style="font-size: 1.5rem;">Rs. @Model.TotalFarmerPayouts.ToString("N0")</div>
+            <div class="metric-subtext text-muted">Net disbursement to farms</div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Table -->
+<div class="panel-card">
+    <div class="panel-card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="panel-card-title mb-0">Trade Settlement Log</h5>
+            <small class="text-muted">Reconciled deals with freight and commission breakdown</small>
+        </div>
+        <span class="badge bg-light text-muted border">Audit Verified</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Deal Reference</th>
+                    <th>Accepted Date</th>
+                    <th>Farmer Partner</th>
+                    <th>Weight (kg)</th>
+                    <th>Gross Traded</th>
+                    <th>Commission</th>
+                    <th>Freight</th>
+                    <th>Farmer Net Payout</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Deals.Any())
+                {
+                    @foreach (var d in Model.Deals)
+                    {
+                        <tr>
+                            <td><strong>#@d.Id.ToString("N")[..8].ToUpper()</strong></td>
+                            <td>@d.AcceptedAt.ToString("dd MMM yyyy")</td>
+                            <td>@d.FarmerCompanyName</td>
+                            <td>@(d.ActualWeightKg.HasValue ? $"{d.ActualWeightKg.Value:N1} kg" : "Pending")</td>
+                            <td>@(d.TotalAmount.HasValue ? $"Rs. {d.TotalAmount.Value:N0}" : "—")</td>
+                            <td class="text-success fw-semibold">@(d.CommissionAmount.HasValue ? $"Rs. {d.CommissionAmount.Value:N0}" : "—")</td>
+                            <td class="text-danger">@(d.FreightAmount.HasValue ? $"Rs. {d.FreightAmount.Value:N0}" : "—")</td>
+                            <td>
+                                <strong>@(d.NetPayableToFarmer.HasValue ? $"Rs. {d.NetPayableToFarmer.Value:N0}" : "—")</strong>
+                            </td>
+                            <td>
+                                <span class="badge @(d.Status switch {
+                                    AERIE.Domain.Enums.DealStatus.Settled => "bg-primary",
+                                    AERIE.Domain.Enums.DealStatus.Paid => "bg-success",
+                                    AERIE.Domain.Enums.DealStatus.Closed => "bg-dark",
+                                    _ => "bg-secondary"
+                                })">@d.Status</span>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-5">
+                            No deals settled in the chosen date interval.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

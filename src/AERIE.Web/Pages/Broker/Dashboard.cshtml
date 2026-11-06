@@ -1,0 +1,237 @@
+@page
+@model AERIE.Web.Pages.Broker.DashboardModel
+@{
+    ViewData["Title"] = "Broker Operations Dashboard";
+    var s = Model.Summary;
+}
+
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="page-title mb-1">Broker Trading & Operations Center</h2>
+        <p class="text-muted mb-0">Authorized poultry trading metrics, real-time marketplace activity, and financial settlements.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-page="/Broker/Marketplace" class="btn btn-outline-primary btn-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
+            Live Marketplace
+        </a>
+        <a asp-page="/Broker/Deals" class="btn btn-primary btn-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            Active Deals
+        </a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @Model.ErrorMessage
+    </div>
+}
+
+@if (s != null)
+{
+    <!-- Row 1: Trading Volume & Inventory -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-label">Published Batches Available</div>
+                <div class="metric-value">@s.TotalPublishedListingsAvailable.ToString("N0")</div>
+                <div class="metric-subtext text-primary">From verified farmer sheds</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-label">Active Trading Deals</div>
+                <div class="metric-value">@s.ActiveDealsCount.ToString("N0")</div>
+                <div class="metric-subtext text-success">@s.PendingProposalsCount proposals awaiting farmer reply</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-label">Birds Committed to Deals</div>
+                <div class="metric-value">@s.CommittedBirdsCount.ToString("N0")</div>
+                <div class="metric-subtext text-muted">Reserved in accepted deals</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-label">Today's Trading Volume</div>
+                <div class="metric-value">@s.TodayPurchasedBirdsCount.ToString("N0") <span style="font-size: 0.9rem; font-weight: normal; color: var(--color-text-muted);">birds</span></div>
+                <div class="metric-subtext text-muted">@s.TodaySoldBirdsCount birds dispatched/sold</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 2: Financial Realization Breakdown (Realized vs Estimated) -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-label">Total Gross Traded Value</div>
+                <div class="metric-value" style="font-size: 1.5rem;">Rs. @s.TotalDealValue.ToString("N0")</div>
+                <div class="metric-subtext text-muted">Across all active & closed deals</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card border-success">
+                <div class="metric-label">Realized Commission (Earned)</div>
+                <div class="metric-value text-success" style="font-size: 1.5rem;">Rs. @s.RealizedCommission.ToString("N2")</div>
+                <div class="metric-subtext text-success">From settled & closed trades</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-label">Estimated Commission (Pipeline)</div>
+                <div class="metric-value text-primary" style="font-size: 1.5rem;">Rs. @s.ExpectedCommission.ToString("N2")</div>
+                <div class="metric-subtext text-muted">Unrealized / pending deals</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-label">Transport Costs Recorded</div>
+                <div class="metric-value text-danger" style="font-size: 1.5rem;">Rs. @s.TotalTransportCosts.ToString("N0")</div>
+                <div class="metric-subtext text-muted">Direct lifting freight expenses</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 3: Cash Flow & Receivables / Payables -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="metric-card border-warning">
+                <div class="metric-label">Amounts Payable to Farmers</div>
+                <div class="metric-value text-warning" style="font-size: 1.5rem;">Rs. @s.TotalAmountsPayableToFarmers.ToString("N0")</div>
+                <div class="metric-subtext text-muted">Pending settlement payout to farms</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-label">Receivable from Buyers</div>
+                <div class="metric-value text-primary" style="font-size: 1.5rem;">Rs. @s.TotalAmountsReceivableFromBuyers.ToString("N0")</div>
+                <div class="metric-subtext text-muted">Invoiced & outstanding amounts</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-label">Pending Lifting & Transit</div>
+                <div class="metric-value">@s.PendingLiftingCount <span style="font-size: 0.9rem; font-weight: normal; color: var(--color-text-muted);">lifts</span></div>
+                <div class="metric-subtext text-muted">@s.PendingDeliveryCount deliveries awaiting arrival</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-label">Unpaid Invoices / Settlements</div>
+                <div class="metric-value text-danger">@s.UnpaidInvoicesCount <span style="font-size: 0.9rem; font-weight: normal; color: var(--color-text-muted);">invoices</span></div>
+                <div class="metric-subtext text-muted">@s.OutstandingSettlementsCount unsettled deal reconciliations</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 4: Live Market Rates & Quick Arbitrage -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-8">
+            <div class="panel-card h-100">
+                <div class="panel-card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="panel-card-title mb-0">Active Trading Deals Pipeline</h5>
+                        <small class="text-muted">Real-time status across farm lifting, transport, and delivery</small>
+                    </div>
+                    <a asp-page="/Broker/Deals" class="btn btn-outline-secondary btn-sm">View All Deals</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Deal Reference</th>
+                                <th>Farmer</th>
+                                <th>Quantity</th>
+                                <th>Agreed Price</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (s.ActiveDeals != null && s.ActiveDeals.Any())
+                            {
+                                @foreach (var deal in s.ActiveDeals.Take(5))
+                                {
+                                    <tr>
+                                        <td><strong>@deal.Id.ToString()[..8].ToUpper()</strong></td>
+                                        <td>@(string.IsNullOrEmpty(deal.FarmerCompanyName) ? "Verified Farmer" : deal.FarmerCompanyName)</td>
+                                        <td>@deal.QuantityBirds.ToString("N0") birds</td>
+                                        <td>Rs. @deal.AgreedPricePerKg/kg</td>
+                                        <td>
+                                            <span class="badge @(deal.Status switch {
+                                                AERIE.Domain.Enums.DealStatus.Accepted => "bg-primary",
+                                                AERIE.Domain.Enums.DealStatus.InTransit => "bg-warning text-dark",
+                                                AERIE.Domain.Enums.DealStatus.Delivered => "bg-info text-dark",
+                                                AERIE.Domain.Enums.DealStatus.Settled => "bg-secondary",
+                                                AERIE.Domain.Enums.DealStatus.Paid or AERIE.Domain.Enums.DealStatus.Closed => "bg-success",
+                                                _ => "bg-light text-dark"
+                                            })">@deal.Status</span>
+                                        </td>
+                                        <td>
+                                            <a asp-page="/Broker/Deals" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.8rem;">Details</a>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-3">No active deals currently in pipeline.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="panel-card h-100">
+                <div class="panel-card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="panel-card-title mb-0">Live Market Rates (Mandi)</h5>
+                        <small class="text-muted">Verified daily broiler rates</small>
+                    </div>
+                    <a asp-page="/Broker/MarketRates" class="btn btn-outline-primary btn-sm py-0 px-2">All Mandis</a>
+                </div>
+                <div class="p-3">
+                    @if (s.RecentPrices != null && s.RecentPrices.Any())
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var price in s.RecentPrices.Take(5))
+                            {
+                                var diff = price.PreviousRatePerKg.HasValue ? price.BroilerRatePerKg - price.PreviousRatePerKg.Value : 0;
+                                <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                                    <div>
+                                        <div class="fw-semibold">@price.Region</div>
+                                        <small class="text-muted">@(price.MarketName ?? "Main Mandi") • Live Broiler</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="fw-bold">Rs. @price.BroilerRatePerKg.ToString("N2") <span style="font-size: 0.75rem; font-weight: normal;">/kg</span></div>
+                                        @if (diff != 0)
+                                        {
+                                            <small class="@(diff > 0 ? "text-success" : "text-danger")">
+                                                @(diff > 0 ? "+" : "")@diff.ToString("N2")
+                                            </small>
+                                        }
+                                        else
+                                        {
+                                            <small class="text-muted">Unchanged</small>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted text-center py-4 mb-0">No market prices recorded yet.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}

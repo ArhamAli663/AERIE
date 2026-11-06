@@ -1,0 +1,169 @@
+@page
+@model AERIE.Web.Pages.Farmer.ReportsModel
+@{
+    ViewData["Title"] = "Flock Production & Growth Reports";
+    var r = Model.Report;
+}
+
+<div class="content-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2">
+            <h1 class="h3 fw-bold text-dark mb-0">Flock Performance & Production Reports</h1>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">Audited Daily Metrics</span>
+        </div>
+        <p class="text-muted small mb-0 mt-1">Lifecycle records, feed conversion ratios, mortality percentages and exportable spreadsheets.</p>
+    </div>
+    <div class="d-flex gap-2">
+        @if (Model.SelectedBatchId.HasValue)
+        {
+            <a href="/api/farmer/reports/production/@Model.SelectedBatchId/csv" class="btn btn-outline-primary btn-sm" download>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Export Lifecycle CSV
+            </a>
+        }
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            Print Report View
+        </button>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="card border-0 shadow-sm rounded-3 bg-white p-3 mb-4">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-5">
+            <label class="form-label small fw-semibold text-muted">Select Flock Batch</label>
+            <select name="batchId" class="form-select form-select-sm" onchange="this.form.submit()">
+                @foreach (var b in Model.Batches)
+                {
+                    <option value="@b.Id" selected="@(b.Id == Model.SelectedBatchId)">
+                        @b.BatchCode (@b.FarmName - @b.HouseName, Placed: @b.PlacementDate.ToString("yyyy-MM-dd"))
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small fw-semibold text-muted">From Date</label>
+            <input type="date" name="fromDate" class="form-control form-control-sm" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small fw-semibold text-muted">To Date</label>
+            <input type="date" name="toDate" class="form-control form-control-sm" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" />
+        </div>
+        <div class="col-md-1">
+            <button type="submit" class="btn btn-primary btn-sm w-100">Filter</button>
+        </div>
+    </form>
+</div>
+
+@if (r != null)
+{
+    <!-- Report Header & Summary KPIs -->
+    <div class="card border-0 shadow-sm rounded-3 bg-white mb-4">
+        <div class="card-body p-4">
+            <div class="row align-items-center mb-3">
+                <div class="col-md-8">
+                    <span class="badge bg-primary-subtle text-primary mb-1">Flock Lifecycle Analysis</span>
+                    <h2 class="h4 fw-bold text-dark mb-0">@r.BatchCode — @r.FarmName (@r.HouseName)</h2>
+                    <p class="text-muted small mb-0">Breed: <strong>@r.BreedName</strong> | Placed: <strong>@r.PlacementDate.ToString("yyyy-MM-dd")</strong> | Initial Birds: <strong>@r.InitialChickCount.ToString("N0")</strong></p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <span class="text-muted small">Current Live Birds:</span>
+                    <div class="h3 fw-bold text-success mb-0">@r.CurrentAliveCount.ToString("N0")</div>
+                </div>
+            </div>
+
+            <div class="row g-2 text-center pt-3 border-top">
+                <div class="col">
+                    <span class="small text-muted d-block">Overall FCR</span>
+                    <strong class="fs-5 @(r.OverallFcr < 1.65m ? "text-success" : "text-dark")">
+                        @(r.OverallFcr.HasValue ? r.OverallFcr.Value.ToString("F2") : "N/A")
+                    </strong>
+                </div>
+                <div class="col">
+                    <span class="small text-muted d-block">Avg Daily Gain</span>
+                    <strong class="fs-5 text-dark">
+                        @(r.OverallAdg.HasValue ? $"{r.OverallAdg:F1} g/d" : "N/A")
+                    </strong>
+                </div>
+                <div class="col">
+                    <span class="small text-muted d-block">Mortality Rate</span>
+                    <strong class="fs-5 @(r.MortalityRatePct > 5m ? "text-danger" : "text-dark")">
+                        @r.MortalityRatePct.ToString("F2")%
+                    </strong>
+                </div>
+                <div class="col">
+                    <span class="small text-muted d-block">EPEF Index</span>
+                    <strong class="fs-5 text-primary">
+                        @(r.Epef.HasValue ? r.Epef.Value.ToString("F1") : "N/A")
+                    </strong>
+                </div>
+                <div class="col">
+                    <span class="small text-muted d-block">Total Feed</span>
+                    <strong class="fs-5 text-dark">@r.TotalFeedConsumedKg.ToString("N1") kg</strong>
+                </div>
+                <div class="col">
+                    <span class="small text-muted d-block">Total Water</span>
+                    <strong class="fs-5 text-dark">@r.TotalWaterConsumedLiters.ToString("N0") L</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Day-by-Day Observations Table -->
+    <div class="card border-0 shadow-sm rounded-3 bg-white">
+        <div class="card-header bg-white border-bottom py-3">
+            <h2 class="h6 fw-bold mb-0">Day-by-Day Production & Observation Log</h2>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-striped align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Date</th>
+                        <th>Day Age</th>
+                        <th>Opening Count</th>
+                        <th>Daily Mortality</th>
+                        <th>Closing Count</th>
+                        <th>Feed Category</th>
+                        <th>Feed (kg)</th>
+                        <th>Water (L)</th>
+                        <th>Sample Wt (g)</th>
+                        <th>Daily ADG (g/d)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!r.DailyRows.Any())
+                    {
+                        <tr>
+                            <td colspan="10" class="text-center py-4 text-muted">No daily records logged for the selected period.</td>
+                        </tr>
+                    }
+                    @foreach (var row in r.DailyRows)
+                    {
+                        <tr>
+                            <td class="ps-3 fw-medium">@row.Date.ToString("yyyy-MM-dd")</td>
+                            <td><span class="badge bg-secondary-subtle text-dark">Day @row.DayAge</span></td>
+                            <td>@row.OpeningCount.ToString("N0")</td>
+                            <td>
+                                @if (row.DailyMortality > 0)
+                                {
+                                    <span class="text-danger fw-semibold">@row.DailyMortality</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">0</span>
+                                }
+                            </td>
+                            <td><strong class="text-primary">@row.ClosingCount.ToString("N0")</strong></td>
+                            <td><span class="badge bg-light text-dark border">@row.FeedCategory</span></td>
+                            <td>@row.FeedConsumedKg.ToString("F1")</td>
+                            <td>@row.WaterConsumedLiters.ToString("F0")</td>
+                            <td>@(row.AverageWeightGrams.HasValue ? $"{row.AverageWeightGrams:F0} g" : "—")</td>
+                            <td>@(row.DailyAdg.HasValue ? $"{row.DailyAdg:F1} g" : "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

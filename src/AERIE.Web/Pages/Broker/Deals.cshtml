@@ -1,0 +1,480 @@
+@page
+@model AERIE.Web.Pages.Broker.DealsModel
+@{
+    ViewData["Title"] = "Trading Deals & Negotiations";
+}
+
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="page-title mb-1">Trading Deals & Proposal Negotiations</h2>
+        <p class="text-muted mb-0">End-to-end trading lifecycle: purchase proposals, weighbridge lifting, delivery confirmation, settlement calculation, invoicing, and payment reconciliation.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-page="/Broker/Marketplace" class="btn btn-outline-primary btn-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
+            Browse Marketplace
+        </a>
+        <a asp-page="/Broker/Ledger" class="btn btn-outline-secondary btn-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            Financial Ledger
+        </a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Deals Section -->
+<div class="panel-card mb-4">
+    <div class="panel-card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="panel-card-title mb-0">Active Trade Contracts & Pipeline</h5>
+            <small class="text-muted">Shared agreements formed upon farmer acceptance of broker proposals</small>
+        </div>
+        <span class="badge bg-primary rounded-pill">@Model.Deals.Count contracts</span>
+    </div>
+
+    @if (!Model.Deals.Any())
+    {
+        <div class="text-center py-5 text-muted">
+            No active deals currently. Submit purchase proposals on available flock batches in the <a asp-page="/Broker/Marketplace">Live Marketplace</a>.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Deal ID & Listing</th>
+                        <th>Trading Parties</th>
+                        <th>Agreed Terms</th>
+                        <th>Lifting / Weight</th>
+                        <th>Settlement Payout</th>
+                        <th>Status</th>
+                        <th>Operations</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var d in Model.Deals)
+                    {
+                        <tr>
+                            <td>
+                                <strong>#@d.Id.ToString("N")[..8].ToUpper()</strong>
+                                <div class="text-muted small">@d.ListingTitle</div>
+                                <small class="text-secondary">@d.AcceptedAt.ToString("dd MMM yyyy HH:mm")</small>
+                            </td>
+                            <td>
+                                <div><small class="text-muted">Farmer:</small> <strong>@d.FarmerCompanyName</strong></div>
+                                <div><small class="text-muted">Broker:</small> <strong>@d.BrokerCompanyName</strong></div>
+                            </td>
+                            <td>
+                                <div><strong>@d.QuantityBirds.ToString("N0")</strong> birds</div>
+                                <div class="text-success fw-semibold">Rs. @d.AgreedPricePerKg / kg</div>
+                            </td>
+                            <td>
+                                @if (d.ActualWeightKg.HasValue)
+                                {
+                                    <strong class="text-primary">@d.ActualWeightKg.Value.ToString("N1") kg</strong>
+                                    <div class="small text-muted">Weighbridge Verified</div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Pending Lifting</span>
+                                }
+                            </td>
+                            <td>
+                                @if (d.NetPayableToFarmer.HasValue)
+                                {
+                                    <strong class="text-success">Rs. @d.NetPayableToFarmer.Value.ToString("N0")</strong>
+                                    <div class="small text-muted">Comm: Rs. @(d.CommissionAmount?.ToString("N0") ?? "0")</div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Not Settled</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge @(d.Status switch {
+                                    AERIE.Domain.Enums.DealStatus.Accepted => "bg-primary",
+                                    AERIE.Domain.Enums.DealStatus.InTransit => "bg-warning text-dark",
+                                    AERIE.Domain.Enums.DealStatus.Delivered => "bg-info text-dark",
+                                    AERIE.Domain.Enums.DealStatus.Settled => "bg-secondary",
+                                    AERIE.Domain.Enums.DealStatus.Invoiced => "bg-warning text-dark",
+                                    AERIE.Domain.Enums.DealStatus.Paid => "bg-success",
+                                    AERIE.Domain.Enums.DealStatus.Closed => "bg-dark",
+                                    _ => "bg-light text-dark"
+                                })">@d.Status</span>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-column gap-1">
+                                    @if (d.Status == AERIE.Domain.Enums.DealStatus.Accepted)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                                data-bs-toggle="modal" data-bs-target="#liftingModal"
+                                                onclick="openLiftingModal('@d.Id', @d.QuantityBirds)">
+                                            Record Lifting
+                                        </button>
+                                    }
+                                    else if (d.Status == AERIE.Domain.Enums.DealStatus.InTransit)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-info"
+                                                data-bs-toggle="modal" data-bs-target="#deliveryModal"
+                                                onclick="openDeliveryModal('@d.Id', @d.QuantityBirds, @(d.ActualWeightKg ?? 0))">
+                                            Record Delivery
+                                        </button>
+                                    }
+                                    else if (d.Status == AERIE.Domain.Enums.DealStatus.Delivered)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-success"
+                                                data-bs-toggle="modal" data-bs-target="#settlementModal"
+                                                onclick="openSettlementModal('@d.Id', @(d.ActualWeightKg ?? 0), @d.AgreedPricePerKg)">
+                                            Calculate Settlement
+                                        </button>
+                                    }
+                                    else if (d.Status == AERIE.Domain.Enums.DealStatus.Settled)
+                                    {
+                                        <form method="post" asp-page-handler="GenerateInvoice" class="d-inline">
+                                            <input type="hidden" name="dealId" value="@d.Id" />
+                                            <input type="hidden" name="totalAmount" value="@(d.NetPayableToFarmer ?? 0)" />
+                                            <button type="submit" class="btn btn-sm btn-outline-warning w-100">
+                                                Generate Invoice
+                                            </button>
+                                        </form>
+                                    }
+                                    else if (d.Status == AERIE.Domain.Enums.DealStatus.Invoiced)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-success"
+                                                data-bs-toggle="modal" data-bs-target="#paymentModal"
+                                                onclick="openPaymentModal('@d.Id', @(d.NetPayableToFarmer ?? 0))">
+                                            Confirm Payment
+                                        </button>
+                                    }
+                                    else if (d.Status == AERIE.Domain.Enums.DealStatus.Paid)
+                                    {
+                                        <form method="post" asp-page-handler="CloseDeal" class="d-inline">
+                                            <input type="hidden" name="dealId" value="@d.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-dark w-100">
+                                                Close Contract
+                                            </button>
+                                        </form>
+                                    }
+                                    else if (d.Status == AERIE.Domain.Enums.DealStatus.Closed)
+                                    {
+                                        <a asp-page="/Broker/Ledger" class="btn btn-sm btn-outline-secondary">
+                                            Ledger Audit
+                                        </a>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- Proposals Section -->
+<div class="panel-card">
+    <div class="panel-card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="panel-card-title mb-0">Purchase Proposals & Negotiations</h5>
+            <small class="text-muted">Proposals submitted to farmers awaiting response or finalized</small>
+        </div>
+        <span class="badge bg-secondary rounded-pill">@Model.Proposals.Count proposals</span>
+    </div>
+
+    @if (!Model.Proposals.Any())
+    {
+        <div class="text-center py-4 text-muted">
+            No proposals on record.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Proposal ID</th>
+                        <th>Listing</th>
+                        <th>Offered Quantity</th>
+                        <th>Offered Price</th>
+                        <th>Submission Date</th>
+                        <th>Farmer Response</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.Proposals)
+                    {
+                        <tr>
+                            <td><strong>#@p.Id.ToString("N")[..8].ToUpper()</strong></td>
+                            <td>@p.ListingTitle</td>
+                            <td>@p.QuantityRequested.ToString("N0") birds</td>
+                            <td>Rs. @p.OfferedPricePerKg.ToString("N2")/kg</td>
+                            <td>@p.ProposedAt.ToString("dd MMM yyyy HH:mm")</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(p.FarmerResponse))
+                                {
+                                    <span>@p.FarmerResponse</span>
+                                    @if (p.RespondedAt.HasValue)
+                                    {
+                                        <div><small class="text-muted">@p.RespondedAt.Value.ToString("dd MMM HH:mm")</small></div>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Awaiting Farmer Review</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge @(p.Status switch {
+                                    AERIE.Domain.Enums.DealStatus.Proposed => "bg-warning text-dark",
+                                    AERIE.Domain.Enums.DealStatus.Accepted => "bg-success",
+                                    AERIE.Domain.Enums.DealStatus.Rejected => "bg-danger",
+                                    AERIE.Domain.Enums.DealStatus.Withdrawn => "bg-secondary",
+                                    _ => "bg-light text-dark"
+                                })">@p.Status</span>
+                            </td>
+                            <td>
+                                @if (p.Status == AERIE.Domain.Enums.DealStatus.Proposed || p.Status == AERIE.Domain.Enums.DealStatus.Reviewed)
+                                {
+                                    <form method="post" asp-page-handler="WithdrawProposal" onsubmit="return confirm('Withdraw this purchase proposal and release reservation?');">
+                                        <input type="hidden" name="proposalId" value="@p.Id" />
+                                        <input type="hidden" name="reason" value="Broker requested withdrawal before acceptance." />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            Withdraw
+                                        </button>
+                                    </form>
+                                }
+                                else if (p.DealId.HasValue)
+                                {
+                                    <span class="badge bg-light text-muted border">Deal Created</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- Modal: Record Lifting -->
+<div class="modal fade" id="liftingModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post" asp-page-handler="RecordLifting">
+            <input type="hidden" id="liftingDealId" name="dealId" />
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Record Farm Lifting & Weighbridge</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Actual Net Weight (kg) *</label>
+                            <input type="number" step="0.1" name="actualWeightKg" class="form-control" required placeholder="e.g. 4350.5" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Birds Loaded *</label>
+                            <input type="number" id="liftingBirdsLoaded" name="birdsLoaded" class="form-control" required />
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Vehicle Registration # *</label>
+                            <input type="text" name="vehicleNumber" class="form-control" required placeholder="e.g. LES-4589" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Weighbridge Ticket #</label>
+                            <input type="text" name="weighbridgeTicketNumber" class="form-control" placeholder="e.g. WB-8841" />
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Driver Name</label>
+                            <input type="text" name="driverName" class="form-control" placeholder="Driver name" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Driver Phone</label>
+                            <input type="text" name="driverPhone" class="form-control" placeholder="0321..." />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Confirm Lifting (In Transit)</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Record Delivery & Discrepancies -->
+<div class="modal fade" id="deliveryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post" asp-page-handler="RecordDelivery">
+            <input type="hidden" id="deliveryDealId" name="dealId" />
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Record Delivery & Transit Discrepancies</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info py-2 small">
+                        Verify delivered head count, receiving weight, and transit mortality for shrinkage calculation.
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Birds Delivered (Headcount) *</label>
+                            <input type="number" id="deliveryBirdsDelivered" name="birdsDelivered" class="form-control" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Mortality During Transit</label>
+                            <input type="number" name="mortalityDuringTransit" class="form-control" value="0" />
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Receiving Weight (kg) *</label>
+                            <input type="number" step="0.1" id="deliveryWeightDelivered" name="weightDeliveredKg" class="form-control" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Freight Cost (Rs.)</label>
+                            <input type="number" step="1" name="freightCost" class="form-control" placeholder="e.g. 15000" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Destination Location / Mandi</label>
+                        <input type="text" name="destinationLocation" class="form-control" placeholder="e.g. Lahore Tollinton Wholesale Mandi" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes / Discrepancy Remarks</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Transit notes, cage condition, or weighbridge slip remarks"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info">Confirm Delivery Arrival</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Calculate Settlement -->
+<div class="modal fade" id="settlementModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post" asp-page-handler="CalculateSettlement">
+            <input type="hidden" id="settlementDealId" name="dealId" />
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Calculate Commission & Farmer Settlement</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Commission Rule *</label>
+                            <select name="commissionType" class="form-select">
+                                <option value="Percentage">Percentage of Gross (%)</option>
+                                <option value="FlatPerBird">Flat Rate per Bird (Rs/bird)</option>
+                                <option value="FlatPerKg">Flat Rate per Kg (Rs/kg)</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Commission Rate / Value *</label>
+                            <input type="number" step="0.1" name="commissionRate" class="form-control" required value="2.0" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Freight & Transport Deduction (Rs.) *</label>
+                        <input type="number" step="1" name="freightAmount" class="form-control" required value="15000" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Settlement Agreement Notes</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Agreed brokerage deductions and payment terms"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Finalize Settlement</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Record Payment -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post" asp-page-handler="RecordPayment">
+            <input type="hidden" id="paymentDealId" name="dealId" />
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Transaction Payment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Payment Amount (Rs.) *</label>
+                        <input type="number" step="0.01" id="paymentAmount" name="amount" class="form-control" required />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Payment Method *</label>
+                            <select name="method" class="form-select" required>
+                                <option value="BankTransfer">Bank Transfer</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Cheque">Cheque</option>
+                                <option value="OnlineTransfer">Online Transfer (Raast/IBFT)</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Reference / Cheque #</label>
+                            <input type="text" name="referenceNumber" class="form-control" placeholder="e.g. TRX-778899" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Bank Name</label>
+                        <input type="text" name="bankName" class="form-control" placeholder="e.g. Meezan Bank / HBL" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Post Double-Entry Payment</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function openLiftingModal(dealId, birds) {
+        document.getElementById('liftingDealId').value = dealId;
+        document.getElementById('liftingBirdsLoaded').value = birds;
+    }
+    function openDeliveryModal(dealId, birds, weight) {
+        document.getElementById('deliveryDealId').value = dealId;
+        document.getElementById('deliveryBirdsDelivered').value = birds;
+        document.getElementById('deliveryWeightDelivered').value = weight;
+    }
+    function openSettlementModal(dealId, weight, price) {
+        document.getElementById('settlementDealId').value = dealId;
+    }
+    function openPaymentModal(dealId, amount) {
+        document.getElementById('paymentDealId').value = dealId;
+        document.getElementById('paymentAmount').value = amount;
+    }
+</script>
+}

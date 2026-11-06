@@ -1,0 +1,224 @@
+@page
+@model AERIE.Web.Pages.Farmer.FinancialsModel
+@{
+    ViewData["Title"] = "Farmer Financials & Settlement Statements";
+    var f = Model.Financials;
+}
+
+<div class="content-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2">
+            <h1 class="h3 fw-bold text-dark mb-0">Farmer Trade Settlements & Financials</h1>
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Shared Relational Ledger</span>
+        </div>
+        <p class="text-muted small mb-0 mt-1">Review accepted broker contracts, weighbridge settlements, invoices & received payments.</p>
+    </div>
+    <div>
+        <a href="/api/farmer/reports/financials/csv" class="btn btn-outline-secondary btn-sm" download>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Export Financial Statement (CSV)
+        </a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm" role="alert">
+        <strong>Error:</strong> @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (f != null)
+{
+    <!-- Financial Metric Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100">
+                <span class="text-muted small fw-semibold text-uppercase mb-1">Gross Broiler Sales</span>
+                <div class="h3 fw-bold text-dark mb-0">PKR @f.TotalGrossSales.ToString("N0")</div>
+                <div class="small text-muted mt-1">Gross trade contract value</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100">
+                <span class="text-muted small fw-semibold text-uppercase mb-1">Commission & Freight</span>
+                <div class="h3 fw-bold text-danger mb-0">PKR @((f.TotalBrokerCommissions + f.TotalFreightDeductions).ToString("N0"))</div>
+                <div class="small text-muted mt-1">
+                    Comm: <strong>PKR @f.TotalBrokerCommissions.ToString("N0")</strong> | Freight: <strong>PKR @f.TotalFreightDeductions.ToString("N0")</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100">
+                <span class="text-muted small fw-semibold text-uppercase mb-1">Net Farmer Payout</span>
+                <div class="h3 fw-bold text-success mb-0">PKR @f.NetFarmerReceivables.ToString("N0")</div>
+                <div class="small text-muted mt-1">After transparent deduction breakdown</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100">
+                <span class="text-muted small fw-semibold text-uppercase mb-1">Outstanding Balance</span>
+                <div class="h3 fw-bold @(f.OutstandingBalance > 0 ? "text-warning-emphasis" : "text-muted") mb-0">
+                    PKR @f.OutstandingBalance.ToString("N0")
+                </div>
+                <div class="small text-muted mt-1">
+                    Paid to date: <strong>PKR @f.TotalPaymentsReceived.ToString("N0")</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trade Contracts & Settlements Table -->
+    <div class="card border-0 shadow-sm rounded-3 bg-white mb-4">
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+            <h2 class="h6 fw-bold mb-0">Trade Contracts & Multi-Party Settlements</h2>
+            <span class="small text-muted">@f.Deals.Count() Contracts Executed</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Contract Ref</th>
+                        <th>Trading Partner (Broker)</th>
+                        <th>Agreed Rate</th>
+                        <th>Agreed Birds</th>
+                        <th>Weighbridge (kg)</th>
+                        <th>Gross Value</th>
+                        <th>Net Payout</th>
+                        <th>Paid Amount</th>
+                        <th>Balance Due</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!f.Deals.Any())
+                    {
+                        <tr>
+                            <td colspan="10" class="text-center py-4 text-muted">
+                                No trade contracts have been created or accepted yet.
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var d in f.Deals)
+                    {
+                        <tr>
+                            <td class="ps-3 fw-bold text-primary">@d.DealNumber</td>
+                            <td><strong>@d.BrokerTenantName</strong></td>
+                            <td>PKR @d.AgreedPricePerKg.ToString("F2")/kg</td>
+                            <td>@d.RequestedQuantity.ToString("N0")</td>
+                            <td>@(d.LiftedWeightKg.HasValue ? $"{d.LiftedWeightKg:N1} kg" : "Pending Lifting")</td>
+                            <td>PKR @d.GrossAmount.ToString("N0")</td>
+                            <td><strong class="text-success">PKR @d.NetPayout.ToString("N0")</strong></td>
+                            <td>PKR @d.AmountPaid.ToString("N0")</td>
+                            <td>
+                                @if (d.BalanceDue > 0)
+                                {
+                                    <span class="badge bg-warning-subtle text-warning-emphasis">PKR @d.BalanceDue.ToString("N0")</span>
+                                }
+                                else if (d.GrossAmount > 0)
+                                {
+                                    <span class="badge bg-success text-white">Fully Paid</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge @(d.Status == "Settled" ? "bg-success" : (d.Status == "InTransit" ? "bg-info text-white" : "bg-primary-subtle text-primary"))">
+                                    @d.Status
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Commercial Invoices & Payment Audit -->
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h2 class="h6 fw-bold mb-0">Commercial Invoices</h2>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Invoice #</th>
+                                <th>Deal Ref</th>
+                                <th>Buyer Broker</th>
+                                <th>Total (PKR)</th>
+                                <th>Paid</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!f.Invoices.Any())
+                            {
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">No invoices generated yet.</td>
+                                </tr>
+                            }
+                            @foreach (var inv in f.Invoices)
+                            {
+                                <tr>
+                                    <td class="ps-3 fw-bold text-dark">@inv.InvoiceNumber</td>
+                                    <td><span class="badge bg-light text-dark border">@inv.DealNumber</span></td>
+                                    <td>@inv.BuyerName</td>
+                                    <td><strong>PKR @inv.TotalAmount.ToString("N0")</strong></td>
+                                    <td>PKR @inv.PaidAmount.ToString("N0")</td>
+                                    <td>
+                                        <span class="badge @(inv.Status == "Paid" ? "bg-success" : (inv.Status == "PartiallyPaid" ? "bg-warning text-dark" : "bg-secondary"))">
+                                            @inv.Status
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h2 class="h6 fw-bold mb-0">Payment Receipts Log</h2>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Invoice</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!f.Payments.Any())
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">No payment confirmations recorded.</td>
+                                </tr>
+                            }
+                            @foreach (var p in f.Payments)
+                            {
+                                <tr>
+                                    <td class="ps-3 fw-medium">@p.InvoiceNumber</td>
+                                    <td><strong class="text-success">PKR @p.Amount.ToString("N0")</strong></td>
+                                    <td><span class="badge bg-light text-dark border">@p.PaymentMethod</span></td>
+                                    <td class="small text-muted">@p.PaidAt.ToString("yyyy-MM-dd")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+}

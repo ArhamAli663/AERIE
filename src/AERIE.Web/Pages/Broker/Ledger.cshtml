@@ -1,0 +1,130 @@
+@page
+@model AERIE.Web.Pages.Broker.LedgerModel
+@{
+    ViewData["Title"] = "Financial Ledger & Invoices";
+}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <div>
+        <h2 style="font-weight: 700; letter-spacing: -0.5px; margin-bottom: 0.25rem;">Financial Ledger & Invoices</h2>
+        <p style="color: var(--color-text-muted); font-size: 0.95rem; margin: 0;">
+            Double-entry bookkeeping, deal invoice tracking, payment confirmations, and audit ledger entries.
+        </p>
+    </div>
+</div>
+
+<!-- Invoices Panel -->
+<div class="panel-card">
+    <div class="panel-header">
+        <h3 class="panel-title">Trade Invoices</h3>
+        <span class="badge badge-primary">@Model.Invoices.Count invoices</span>
+    </div>
+
+    @if (!Model.Invoices.Any())
+    {
+        <div style="padding: 2rem; text-align: center; color: var(--color-text-muted);">
+            No invoices generated yet. Once a deal settlement is finalized, the corresponding trade invoice will appear here.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Deal Reference</th>
+                        <th>Issued Date</th>
+                        <th>Due Date</th>
+                        <th>Total Amount</th>
+                        <th>Paid Amount</th>
+                        <th>Balance Due</th>
+                        <th>Payment Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var inv in Model.Invoices)
+                    {
+                        <tr>
+                            <td><strong>@inv.InvoiceNumber</strong></td>
+                            <td>#@inv.DealId.ToString("N")[..8].ToUpper()</td>
+                            <td>@inv.IssueDate.ToString("dd MMM yyyy")</td>
+                            <td>@inv.DueDate.ToString("dd MMM yyyy")</td>
+                            <td><strong>Rs. @inv.TotalAmount.ToString("N2")</strong></td>
+                            <td style="color: var(--color-success); font-weight: 600;">Rs. @inv.PaidAmount.ToString("N2")</td>
+                            <td style="color: @(inv.BalanceDue > 0 ? "var(--color-danger)" : "var(--color-text-muted)"); font-weight: 600;">
+                                Rs. @inv.BalanceDue.ToString("N2")
+                            </td>
+                            <td>
+                                @if (inv.Status == "Paid")
+                                {
+                                    <span class="badge badge-success">Paid</span>
+                                }
+                                else if (inv.Status == "PartiallyPaid")
+                                {
+                                    <span class="badge badge-warning">Partial</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-danger">Unpaid</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- Financial Ledger Double-Entry Audit Trail -->
+<div class="panel-card">
+    <div class="panel-header">
+        <h3 class="panel-title">General Ledger Audit Trail (Double-Entry Bookkeeping)</h3>
+        <span class="badge badge-success">Auditable</span>
+    </div>
+
+    @if (!Model.LedgerEntries.Any())
+    {
+        <div style="padding: 2rem; text-align: center; color: var(--color-text-muted);">
+            No ledger transactions posted yet. Payments confirmed on accepted deals will generate verified debit and credit audit entries.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Transaction Timestamp</th>
+                        <th>Deal Reference</th>
+                        <th>Entry Type</th>
+                        <th>Amount</th>
+                        <th>Transaction Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in Model.LedgerEntries)
+                    {
+                        <tr>
+                            <td>@entry.EntryDate.ToString("dd MMM yyyy HH:mm:ss")</td>
+                            <td>@(entry.DealId.HasValue ? $"#{entry.DealId.Value.ToString("N")[..8].ToUpper()}" : "General")</td>
+                            <td>
+                                @if (entry.EntryType.ToString() == "Debit")
+                                {
+                                    <span class="badge badge-primary">DEBIT (Bank/Cash)</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-success">CREDIT (Revenue/A/R)</span>
+                                }
+                            </td>
+                            <td><strong>Rs. @entry.Amount.ToString("N2")</strong></td>
+                            <td>@entry.Description</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

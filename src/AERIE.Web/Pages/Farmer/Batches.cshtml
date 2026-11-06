@@ -1,0 +1,335 @@
+@page
+@model AERIE.Web.Pages.Farmer.BatchesModel
+@{
+    ViewData["Title"] = "Flock Production Batches";
+}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <div>
+        <h2 style="font-weight: 700; letter-spacing: -0.5px; margin-bottom: 0.25rem;">Flock Production Batches</h2>
+        <p style="color: var(--color-text-muted); font-size: 0.95rem; margin: 0;">
+            Track lifecycle, record daily observations, monitor automated FCR calculations, and release eligible batches to the marketplace.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+        <button type="button" class="btn-stitch-primary" data-bs-toggle="modal" data-bs-target="#newBatchModal">
+            + Place New Batch
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success" style="border-radius: var(--radius-md); font-size: 0.9rem;">
+        @Model.StatusMessage
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" style="border-radius: var(--radius-md); font-size: 0.9rem;">
+        @Model.ErrorMessage
+    </div>
+}
+
+<div class="panel-card">
+    <div class="panel-header">
+        <h3 class="panel-title">Active & Production Batches</h3>
+        <span style="font-size: 0.85rem; color: var(--color-text-muted);">@Model.Batches.Count batches recorded</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Batch Code</th>
+                    <th>Farm & Shed</th>
+                    <th>Breed</th>
+                    <th>Age</th>
+                    <th>Alive Flock</th>
+                    <th>FCR</th>
+                    <th>Mortality</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Batches.Any())
+                {
+                    <tr>
+                        <td colspan="9" class="text-center py-5">
+                            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🐣</div>
+                            <h5 style="font-weight: 600; margin-bottom: 0.25rem;">No Flock Batches Placed Yet</h5>
+                            <p style="color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+                                Your farm workspace starts clean. Place your first flock batch to track chicks, daily feed, FCR, and mortality.
+                            </p>
+                            <button type="button" class="btn-stitch-primary" data-bs-toggle="modal" data-bs-target="#newBatchModal">
+                                + Place First Flock Batch
+                            </button>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var batch in Model.Batches)
+                    {
+                    <tr>
+                        <td>
+                            <strong>@batch.BatchCode</strong>
+                            <div style="font-size: 0.75rem; color: var(--color-text-muted);">Placed: @batch.PlacementDate.ToString("dd MMM yyyy")</div>
+                        </td>
+                        <td>
+                            <div>@batch.FarmName</div>
+                            <span class="badge badge-primary">@batch.HouseName</span>
+                        </td>
+                        <td>@batch.BreedName</td>
+                        <td><strong>@batch.AgeDays</strong> days</td>
+                        <td>
+                            <strong>@batch.CurrentAliveCount.ToString("N0")</strong>
+                            <div style="font-size: 0.75rem; color: var(--color-text-muted);">of @batch.InitialChickCount.ToString("N0") placed</div>
+                        </td>
+                        <td>
+                            @if (batch.LatestFcr.HasValue)
+                            {
+                                <span class="badge badge-success">@batch.LatestFcr.Value.ToString("F2")</span>
+                            }
+                            else
+                            {
+                                <span style="color: var(--color-text-subtle);">--</span>
+                            }
+                        </td>
+                        <td>
+                            @(batch.MortalityRatePct?.ToString("F1") ?? "0.0")%
+                        </td>
+                        <td>
+                            @switch (batch.Status.ToString())
+                            {
+                                case "Active":
+                                    <span class="badge badge-primary">Active</span>
+                                    break;
+                                case "ReadyForSale":
+                                    <span class="badge badge-success">Ready For Sale</span>
+                                    break;
+                                case "PartialSold":
+                                    <span class="badge badge-warning">Partial Sold</span>
+                                    break;
+                                case "FullySold":
+                                    <span class="badge badge-secondary">Sold Out</span>
+                                    break;
+                                default:
+                                    <span class="badge badge-secondary">@batch.Status</span>
+                                    break;
+                            }
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <!-- Log Daily Modal Button -->
+                                <button type="button" class="btn btn-sm btn-outline-primary"
+                                        data-bs-toggle="modal" data-bs-target="#dailyLogModal"
+                                        onclick="setLogBatchId('@batch.Id', '@batch.BatchCode', @batch.CurrentAliveCount)">
+                                    Log Daily
+                                </button>
+
+                                @if (batch.Status.ToString() == "Active")
+                                {
+                                    <form method="post" asp-page-handler="MarkReady" style="display: inline;">
+                                        <input type="hidden" name="batchId" value="@batch.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-success">
+                                            Ready for Sale
+                                        </button>
+                                    </form>
+                                }
+
+                                 @if (batch.Status.ToString() == "ReadyForSale" || batch.Status.ToString() == "PartialSold")
+                                {
+                                    <button type="button" class="btn btn-sm btn-success"
+                                            data-bs-toggle="modal" data-bs-target="#createListingModal"
+                                            onclick="setListingBatchId('@batch.Id', '@batch.BatchCode', @batch.CurrentAliveCount)">
+                                        Marketplace
+                                    </button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: Place New Batch -->
+<div class="modal fade" id="newBatchModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: var(--radius-lg);">
+            <form method="post" asp-page-handler="CreateBatch">
+                <div class="modal-header">
+                    <h5 class="modal-title" style="font-weight: 600;">Place New Flock Batch</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                    @if (!Model.PoultryHouses.Any())
+                    {
+                        <div class="alert alert-warning" style="font-size: 0.85rem; margin-bottom: 0;">
+                            <strong>No Sheds Found!</strong> You must add a poultry shed before placing chicks.
+                            <div class="mt-2">
+                                <a asp-page="/Farmer/Farms" class="btn btn-sm btn-warning">Go to Farms & Sheds Setup &rarr;</a>
+                            </div>
+                        </div>
+                    }
+                    <div>
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Select Farm & Shed</label>
+                        <select name="PoultryHouseId" class="form-select" required @(!Model.PoultryHouses.Any() ? "disabled" : "")>
+                            @if (!Model.PoultryHouses.Any())
+                            {
+                                <option value="">No sheds registered yet</option>
+                            }
+                            else
+                            {
+                                @foreach (var h in Model.PoultryHouses)
+                                {
+                                    <option value="@h.Id">@h.FarmName - @h.Name (Cap: @h.Capacity)</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Select Breed</label>
+                        <select name="BreedId" class="form-select" required>
+                            @foreach (var b in Model.Breeds)
+                            {
+                                <option value="@b.Id">@b.Name (Target: @b.TargetMarketWeightGrams g)</option>
+                            }
+                        </select>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Initial Chick Count</label>
+                            <input type="number" name="InitialChickCount" class="form-control" required placeholder="5000" />
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Cost per Chick (Rs.)</label>
+                            <input type="number" step="0.01" name="CostPerChick" class="form-control" required placeholder="85.00" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Supplier Reference</label>
+                        <input type="text" name="SupplierReference" class="form-control" placeholder="e.g. Jadeed Chicks Hatchery" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-stitch-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-stitch-primary">Confirm Placement</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Log Daily Observation -->
+<div class="modal fade" id="dailyLogModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: var(--radius-lg);">
+            <form method="post" asp-page-handler="LogDaily">
+                <input type="hidden" id="logBatchId" name="BatchId" />
+                <div class="modal-header">
+                    <h5 class="modal-title" style="font-weight: 600;">Daily Observation Log — <span id="logBatchCodeTitle"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Current Alive Birds</label>
+                            <input type="number" id="logAliveCount" name="AliveCount" class="form-control" required />
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Today's Mortality (dead)</label>
+                            <input type="number" name="DailyMortality" class="form-control" required value="0" />
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Feed Consumed (kg)</label>
+                            <input type="number" step="0.1" name="FeedConsumedKg" class="form-control" required placeholder="350" />
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Water Consumed (liters)</label>
+                            <input type="number" step="0.1" name="WaterConsumedLiters" class="form-control" required placeholder="700" />
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Feed Category</label>
+                            <select name="FeedCategory" class="form-select">
+                                <option value="Starter">Starter (Day 0-14)</option>
+                                <option value="Grower">Grower (Day 15-28)</option>
+                                <option value="Finisher">Finisher (Day 29+)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Average Body Weight (grams)</label>
+                            <input type="number" step="0.1" name="AverageWeightGrams" class="form-control" placeholder="e.g. 1850" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-stitch-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-stitch-primary">Save Daily Log</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Create Marketplace Listing -->
+<div class="modal fade" id="createListingModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: var(--radius-lg);">
+            <form method="post" asp-page-handler="CreateListing">
+                <input type="hidden" id="listingBatchId" name="BatchId" />
+                <div class="modal-header">
+                    <h5 class="modal-title" style="font-weight: 600;">Create Marketplace Listing</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div>
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Listing Title</label>
+                        <input type="text" name="Title" class="form-control" required placeholder="e.g. 4,500 High Quality Cobb 500 Broilers" />
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Total Birds to Offer</label>
+                            <input type="number" id="listingQuantity" name="QuantityTotal" class="form-control" required />
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Asking Price per Kg (Rs.)</label>
+                            <input type="number" step="0.01" name="AskingPricePerKg" class="form-control" required placeholder="345.00" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Location City</label>
+                        <input type="text" name="LocationCity" class="form-control" required placeholder="Lahore" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-stitch-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-stitch-primary">Publish to Marketplace</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function setLogBatchId(id, code, alive) {
+        document.getElementById('logBatchId').value = id;
+        document.getElementById('logBatchCodeTitle').innerText = code;
+        document.getElementById('logAliveCount').value = alive;
+    }
+    function setListingBatchId(id, code, alive) {
+        document.getElementById('listingBatchId').value = id;
+        document.getElementById('listingQuantity').value = alive;
+    }
+</script>
+}

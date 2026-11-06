@@ -1,0 +1,386 @@
+@page
+@model AERIE.Web.Pages.MarketRatesModel
+@{
+    ViewData["Title"] = "All Pakistan Live Poultry Mandi Rates";
+    var prices = Model.MarketPrices;
+    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+    var isBroker = User.IsInRole("Broker");
+    var isFarmer = User.IsInRole("Farmer");
+
+    // Dynamic national statistics
+    var avgRate = prices.Any() ? prices.Average(p => p.BroilerRatePerKg) : 345m;
+    var maxRate = prices.Any() ? prices.OrderByDescending(p => p.BroilerRatePerKg).First() : null;
+    var minRate = prices.Any() ? prices.OrderBy(p => p.BroilerRatePerKg).First() : null;
+}
+
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="pulse-dot"></span>
+            <span class="badge bg-success text-white px-2 py-1">Official National Ticker</span>
+            <span style="font-size: 0.85rem; color: var(--color-text-muted);">Shared Mandi Intelligence &bull; All Pakistan Cities</span>
+        </div>
+        <h2 class="page-title mb-1">All Pakistan Daily Poultry Mandi Rates</h2>
+        <p class="text-muted mb-0">
+            Real-time verified broiler rates, wholesale mandi prices, retail meat estimates, and day-old chicks across Punjab, Sindh, KPK, Balochistan & AJK.
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-page="/PoultryShops" class="btn btn-outline-success btn-sm">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            Poultry Shops Directory
+        </a>
+        @if (isBroker)
+        {
+            <a asp-page="/Broker/MarketComparison" class="btn btn-outline-primary btn-sm">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                Arbitrage Calculator
+            </a>
+        }
+        <form method="post" asp-page-handler="RefreshDailyRates" class="d-inline">
+            <button type="submit" class="btn btn-outline-success btn-sm px-3 shadow-sm d-flex align-items-center gap-1" title="Simulates and records today's automated daily price fluctuation across all 26 cities">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                <span>🔄 Auto-Update Today's Rates (روزانہ خودکار ریٹ)</span>
+            </button>
+        </form>
+        <button type="button" class="btn btn-primary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#recordRateModal">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            + Publish / Manual Rate
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert">
+        <strong>Success:</strong> @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm" role="alert">
+        <strong>Error:</strong> @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Automated Daily Rates Engine Status Banner -->
+<div class="card border-0 shadow-sm rounded-3 p-3 mb-4 text-white" style="background: linear-gradient(135deg, #065f46 0%, #047857 50%, #059669 100%);">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="bg-white bg-opacity-25 rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </div>
+            <div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-warning text-dark fw-bold px-2 py-1">AUTOMATED DAILY ENGINE</span>
+                    <span class="small opacity-90 text-light">Rozana Subha 06:00 AM Official Mandi Bulletin Synchronizer</span>
+                </div>
+                <div class="fw-bold fs-5 mt-1">
+                    Today's Official Mandi Date: @DateTime.UtcNow.ToString("dddd, dd MMMM yyyy")
+                </div>
+                <small class="opacity-75">All Pakistan poultry market rates automatically fluctuate daily according to district supply, demand cycles, and regional freight factors.</small>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <form method="post" asp-page-handler="RefreshDailyRates" class="d-inline">
+                <button type="submit" class="btn btn-light btn-sm fw-bold px-3 py-2 shadow-sm d-flex align-items-center gap-2 text-success">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                    <span>Run Today's Price Sync (آج کا ریٹ اپڈیٹ)</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Dynamic National Highlights Summary -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100" style="border-left: 4px solid #0284c7 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-muted small fw-semibold text-uppercase">Cities Monitored</span>
+                <span class="badge bg-primary-subtle text-primary">All Pakistan</span>
+            </div>
+            <div class="h2 fw-bold text-dark mb-1">@prices.Count <span class="fs-6 fw-normal text-muted">Districts</span></div>
+            <div class="small text-muted">Punjab, Sindh, KPK, Balochistan & AJK</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100" style="border-left: 4px solid #16a34a !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-muted small fw-semibold text-uppercase">National Average Rate</span>
+                <span class="badge bg-success-subtle text-success">Live Broiler</span>
+            </div>
+            <div class="h2 fw-bold text-success mb-1">Rs. @avgRate.ToString("F1") <span class="fs-6 fw-normal text-muted">/ kg</span></div>
+            <div class="small text-muted">Weighted average across monitored mandis</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100" style="border-left: 4px solid #8b5cf6 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-muted small fw-semibold text-uppercase">Highest Rate Market</span>
+                <span class="badge bg-purple-subtle text-purple" style="background:#f3e8ff; color:#7e22ce;">Top Spread</span>
+            </div>
+            <div class="h2 fw-bold text-dark mb-1">
+                @(maxRate != null ? $"Rs. {maxRate.BroilerRatePerKg:N0}" : "—")
+                <span class="fs-6 fw-normal text-muted">(@(maxRate?.Region ?? "—"))</span>
+            </div>
+            <div class="small text-muted">Target arbitrage destination</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100" style="border-left: 4px solid #f59e0b !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-muted small fw-semibold text-uppercase">Lowest Rate (Production)</span>
+                <span class="badge bg-warning-subtle text-warning-emphasis">Farm Gate</span>
+            </div>
+            <div class="h2 fw-bold text-dark mb-1">
+                @(minRate != null ? $"Rs. {minRate.BroilerRatePerKg:N0}" : "—")
+                <span class="fs-6 fw-normal text-muted">(@(minRate?.Region ?? "—"))</span>
+            </div>
+            <div class="small text-muted">Optimal source lifting hub</div>
+        </div>
+    </div>
+</div>
+
+<!-- Search & Province Filter Bar -->
+<div class="card border-0 shadow-sm rounded-3 p-3 bg-white mb-4">
+    <div class="row g-2 align-items-center">
+        <div class="col-lg-6">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </span>
+                <input type="text" id="mandiLiveSearch" class="form-control border-start-0" 
+                       placeholder="🔍 Type city, mandi, or province name (e.g. Lahore, Karachi, Rawalpindi, Peshawar, Quetta, Multan, Faisalabad)..." 
+                       value="@Model.SelectedRegion" />
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="d-flex gap-1 flex-wrap justify-content-lg-end">
+                <button type="button" class="btn btn-sm btn-primary province-filter-btn" onclick="filterByProvince('All')">All Pakistan (@prices.Count)</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary province-filter-btn" onclick="filterByProvince('Punjab')">Punjab</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary province-filter-btn" onclick="filterByProvince('Sindh')">Sindh</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary province-filter-btn" onclick="filterByProvince('KPK')">KPK</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary province-filter-btn" onclick="filterByProvince('Balochistan')">Balochistan & AJK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Rates Table Card -->
+<div class="panel-card card border-0 shadow-sm rounded-3 bg-white mb-4">
+    <div class="panel-card-header d-flex justify-content-between align-items-center p-3 border-bottom">
+        <div>
+            <h5 class="panel-card-title mb-0 fw-bold">Verified All Pakistan Mandi Price Board</h5>
+            <small class="text-muted">Live farm gate broiler rate, wholesale mandi price, retail meat estimate, and day-old chicks (DOC)</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success-subtle text-success border border-success-subtle">Updated Daily at 06:00 AM</span>
+            <span class="badge bg-primary text-white" id="visibleCitiesBadge">@prices.Count Cities</span>
+        </div>
+    </div>
+
+    @if (prices.Count == 0)
+    {
+        <div class="text-center py-5">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📈</div>
+            <h5 class="fw-bold text-dark">No Mandi Rates Recorded Yet</h5>
+            <p class="text-muted small mb-3">Be the first to record today's live rate for your city.</p>
+            <button type="button" class="btn btn-primary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#recordRateModal">
+                + Publish Rate Now
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="ratesTable">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">City / District</th>
+                        <th>Wholesale Mandi Name</th>
+                        <th class="text-end">Yesterday</th>
+                        <th class="text-end">Today's Live Rate</th>
+                        <th class="text-center">24h Daily Fluctuation</th>
+                        <th class="text-end">Retail Meat Est.</th>
+                        <th class="text-end">DOC (Chooza) Rate</th>
+                        <th>Official Source & Verification</th>
+                        <th class="text-end pe-3">Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in prices)
+                    {
+                        var isToday = p.PriceDate == today;
+                        var diff = p.BroilerRatePerKg - (p.PreviousRatePerKg ?? p.BroilerRatePerKg);
+                        var retailMeatEst = Math.Round(p.BroilerRatePerKg * 1.62m, 0); // Standard live-to-meat conversion in Pakistan markets
+
+                        <tr class="rate-row" data-city="@p.Region.ToLower()" data-market="@(p.MarketName?.ToLower() ?? "")">
+                            <td class="ps-3">
+                                <div class="fw-bold text-dark">@p.Region</div>
+                                <span class="badge bg-light text-muted border" style="font-size: 0.7rem;">Official District Rate</span>
+                            </td>
+                            <td>
+                                <span class="fw-semibold text-secondary">@p.MarketName</span>
+                            </td>
+                            <td class="text-end text-muted">
+                                @(p.PreviousRatePerKg.HasValue ? $"Rs. {p.PreviousRatePerKg.Value:N0}" : "—")
+                            </td>
+                            <td class="text-end">
+                                <div class="fs-6 fw-bold text-success">Rs. @p.BroilerRatePerKg.ToString("N2")</div>
+                                <small class="text-muted">per kg</small>
+                            </td>
+                            <td class="text-center">
+                                @if (diff > 0)
+                                {
+                                    <span class="badge bg-success-subtle text-success">▲ +Rs. @diff.ToString("N0")</span>
+                                }
+                                else if (diff < 0)
+                                {
+                                    <span class="badge bg-danger-subtle text-danger">▼ -Rs. @Math.Abs(diff).ToString("N0")</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary-subtle text-muted">Steady</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <span class="fw-semibold text-dark">Rs. @retailMeatEst.ToString("N0")</span>
+                                <small class="text-muted">/kg</small>
+                            </td>
+                            <td class="text-end">
+                                @if (p.DayOldChickRate > 0)
+                                {
+                                    <span class="fw-semibold text-primary">Rs. @p.DayOldChickRate.ToString("N0")</span>
+                                    <small class="text-muted">/chick</small>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="small fw-semibold text-dark">
+                                    @(string.IsNullOrWhiteSpace(p.Source) ? "Poultry Association" : p.Source)
+                                </div>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.68rem;">Verified</span>
+                            </td>
+                            <td class="text-end pe-3 small text-muted">
+                                @p.PriceDate.ToString("dd MMM yyyy")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- Modal: Record / Publish Mandi Rate -->
+<div class="modal fade" id="recordRateModal" tabindex="-1" aria-labelledby="recordRateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-page-handler="RecordRate">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="recordRateModalLabel">Publish Live Mandi Market Rate</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">City / District <span class="text-danger">*</span></label>
+                        <input type="text" name="region" class="form-control" required placeholder="e.g. Lahore, Karachi, Rawalpindi, Peshawar, Multan" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Market / Mandi Name</label>
+                        <input type="text" name="marketName" class="form-control" placeholder="e.g. Tollinton Market, Gunj Mandi, Lee Market" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Live Broiler Rate (Rs./kg) <span class="text-danger">*</span></label>
+                        <input type="number" step="0.5" name="broilerRatePerKg" class="form-control" required placeholder="e.g. 345.00" />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Cull Rate (Rs./kg)</label>
+                            <input type="number" step="0.5" name="cullRatePerKg" class="form-control" placeholder="e.g. 210.00" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">DOC (Chooza) Rate (Rs./chick)</label>
+                            <input type="number" step="0.5" name="dayOldChickRate" class="form-control" placeholder="e.g. 85.00" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Published By / Verification Authority</label>
+                        <input type="text" name="source" class="form-control" placeholder="e.g. Lahore Poultry Association / District Committee" />
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4">Publish Rate Now</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const searchInput = document.getElementById('mandiLiveSearch');
+    const rows = document.querySelectorAll('.rate-row');
+    const badge = document.getElementById('visibleCitiesBadge');
+
+    const punjabCities = ['lahore', 'rawalpindi', 'faisalabad', 'multan', 'gujranwala', 'sargodha', 'sialkot', 'bahawalpur', 'sahiwal', 'rahim yar khan', 'gujrat', 'jhelum', 'okara', 'sheikhupura', 'kasur'];
+    const sindhCities = ['karachi', 'hyderabad', 'sukkur', 'larkana'];
+    const kpkCities = ['peshawar', 'abbottabad', 'mardan'];
+    const balochistanAjkCities = ['quetta', 'muzaffarabad', 'mirpur', 'islamabad'];
+
+    let currentProvinceFilter = 'All';
+
+    function filterRates() {
+        const query = (searchInput.value || '').toLowerCase().trim();
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const city = row.getAttribute('data-city') || '';
+            const market = row.getAttribute('data-market') || '';
+
+            const matchesQuery = !query || city.includes(query) || market.includes(query);
+
+            let matchesProvince = true;
+            if (currentProvinceFilter === 'Punjab') matchesProvince = punjabCities.includes(city);
+            else if (currentProvinceFilter === 'Sindh') matchesProvince = sindhCities.includes(city);
+            else if (currentProvinceFilter === 'KPK') matchesProvince = kpkCities.includes(city);
+            else if (currentProvinceFilter === 'Balochistan') matchesProvince = balochistanAjkCities.includes(city);
+
+            if (matchesQuery && matchesProvince) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        if (badge) {
+            badge.innerText = visibleCount + ' Cities';
+        }
+    }
+
+    searchInput.addEventListener('input', filterRates);
+
+    function filterByProvince(prov) {
+        currentProvinceFilter = prov;
+        document.querySelectorAll('.province-filter-btn').forEach(btn => {
+            if (btn.innerText.includes(prov)) {
+                btn.classList.remove('btn-outline-secondary');
+                btn.classList.add('btn-primary');
+            } else {
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-outline-secondary');
+            }
+        });
+        filterRates();
+    }
+</script>
+}

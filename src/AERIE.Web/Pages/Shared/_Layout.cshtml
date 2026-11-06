@@ -1,0 +1,246 @@
+@using System.Security.Claims
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - AERIE Poultry ERP</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    @{
+        var isAuthenticated = User.Identity?.IsAuthenticated == true;
+        var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+        var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? "Enterprise User";
+        var tenantName = User.FindFirst("tenant_name")?.Value ?? (userRole == "Broker" ? "Punjab Poultry Traders" : "Al-Madina Poultry Farms");
+        var isFarmer = string.Equals(userRole, "Farmer", StringComparison.OrdinalIgnoreCase);
+        var isBroker = string.Equals(userRole, "Broker", StringComparison.OrdinalIgnoreCase);
+        var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
+    }
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="app-sidebar">
+            <div class="app-brand">
+                <div class="brand-logo-icon" style="background: @(isBroker ? "#0284c7" : "#059669");">A</div>
+                <div class="brand-text">
+                    <h1>AERIE</h1>
+                    <span>@(isBroker ? "Broker Portal" : isFarmer ? "Farmer Portal" : "Poultry SaaS ERP")</span>
+                </div>
+            </div>
+
+            @if (isFarmer)
+            {
+                <!-- Farmer Module Navigation ONLY -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Farm Management</div>
+                    <a class="nav-link-item @(currentPage.StartsWith("/Farmer/Dashboard") ? "active" : "")" asp-page="/Farmer/Dashboard">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                        Farmer Dashboard
+                    </a>
+                    <a class="nav-link-item @(currentPage.StartsWith("/Farmer/Farms") ? "active" : "")" asp-page="/Farmer/Farms">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                        Farms & Sheds
+                    </a>
+                    <a class="nav-link-item @(currentPage.StartsWith("/Farmer/Batches") ? "active" : "")" asp-page="/Farmer/Batches">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                        Flock Batches
+                    </a>
+                    <a class="nav-link-item @(currentPage.StartsWith("/Farmer/Listings") ? "active" : "")" asp-page="/Farmer/Listings">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                        Listings & Proposals
+                    </a>
+                    <a class="nav-link-item @(currentPage.StartsWith("/Farmer/Financials") ? "active" : "")" asp-page="/Farmer/Financials">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        Farmer Financials
+                    </a>
+                    <a class="nav-link-item @(currentPage.StartsWith("/Farmer/Reports") ? "active" : "")" asp-page="/Farmer/Reports">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        Reports & Exports
+                    </a>
+                </div>
+
+                <!-- Shared Market Rates for Farmer -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Market Intelligence</div>
+                    <a class="nav-link-item @(currentPage.StartsWith("/MarketRates") ? "active" : "")" asp-page="/MarketRates">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                        Live Mandi Rates
+                    </a>
+                    <a class="nav-link-item @(currentPage.StartsWith("/PoultryShops") ? "active" : "")" asp-page="/PoultryShops">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                        Poultry Shops Directory
+                    </a>
+                </div>
+
+                <!-- Session -->
+                <div class="nav-section" style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--color-border);">
+                    <a class="nav-link-item text-danger" asp-page="/Auth/Logout">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                        Switch Role / Logout
+                    </a>
+                </div>
+            }
+            else if (isBroker)
+            {
+                <!-- Broker Module Navigation ONLY -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Broker Trading</div>
+                    <a class="nav-link-item @(currentPage.StartsWith("/Broker/Dashboard") ? "active" : "")" asp-page="/Broker/Dashboard">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                        Broker Dashboard
+                    </a>
+                    <a class="nav-link-item @(currentPage.StartsWith("/Broker/Marketplace") ? "active" : "")" asp-page="/Broker/Marketplace">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
+                        Live Marketplace
+                    </a>
+                    <a class="nav-link-item @(currentPage.StartsWith("/Broker/Deals") ? "active" : "")" asp-page="/Broker/Deals">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                        Trading Deals
+                    </a>
+                    <a class="nav-link-item @(currentPage.StartsWith("/Broker/MarketComparison") ? "active" : "")" asp-page="/Broker/MarketComparison">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        Market Arbitrage
+                    </a>
+                    <a class="nav-link-item @(currentPage.StartsWith("/Broker/Ledger") ? "active" : "")" asp-page="/Broker/Ledger">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        Financial Ledger
+                    </a>
+                    <a class="nav-link-item @(currentPage.StartsWith("/Broker/Reports") ? "active" : "")" asp-page="/Broker/Reports">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        Reports & Statements
+                    </a>
+                </div>
+
+                <!-- Shared Market Rates for Broker -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Market Intelligence</div>
+                    <a class="nav-link-item @(currentPage.StartsWith("/MarketRates") || currentPage.StartsWith("/Broker/MarketRates") ? "active" : "")" asp-page="/MarketRates">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                        Live Mandi Rates
+                    </a>
+                    <a class="nav-link-item @(currentPage.StartsWith("/PoultryShops") ? "active" : "")" asp-page="/PoultryShops">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                        Poultry Shops Directory
+                    </a>
+                </div>
+
+                <!-- Session -->
+                <div class="nav-section" style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--color-border);">
+                    <a class="nav-link-item text-danger" asp-page="/Auth/Logout">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                        Switch Role / Logout
+                    </a>
+                </div>
+            }
+            else
+            {
+                <!-- Public / Role Selection Navigation -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Select Portal</div>
+                    <a class="nav-link-item @(currentPage == "/Index" ? "active" : "")" asp-page="/Index">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                        Portal Gateway
+                    </a>
+                    <a class="nav-link-item @(currentPage.StartsWith("/MarketRates") ? "active" : "")" asp-page="/MarketRates">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                        Live Mandi Rates
+                    </a>
+                    <a class="nav-link-item @(currentPage.StartsWith("/PoultryShops") ? "active" : "")" asp-page="/PoultryShops">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                        Poultry Shops Directory
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Authentication</div>
+                    <a class="nav-link-item" asp-page="/Auth/Login" asp-route-role="Farmer">
+                        <span style="margin-right: 0.5rem;">🐓</span>
+                        Farmer Sign In
+                    </a>
+                    <a class="nav-link-item" asp-page="/Auth/Login" asp-route-role="Broker">
+                        <span style="margin-right: 0.5rem;">🚛</span>
+                        Broker Sign In
+                    </a>
+                </div>
+            }
+        </aside>
+
+        <!-- Main Workspace -->
+        <div class="app-main">
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    @if (isFarmer)
+                    {
+                        <div class="module-badge" style="background: #ecfdf5; color: #047857; border-color: #a7f3d0;">
+                            <span class="pulse-dot" style="background: #10b981;"></span>
+                            Poultry Farmer Portal
+                        </div>
+                        <span style="font-size: 0.85rem; color: var(--color-text-muted);">
+                            Active Farm Tenant: <strong>@tenantName</strong>
+                        </span>
+                    }
+                    else if (isBroker)
+                    {
+                        <div class="module-badge" style="background: #f0f9ff; color: #0369a1; border-color: #bae6fd;">
+                            <span class="pulse-dot" style="background: #0284c7;"></span>
+                            Poultry Broker Portal
+                        </div>
+                        <span style="font-size: 0.85rem; color: var(--color-text-muted);">
+                            Trading Firm: <strong>@tenantName</strong>
+                        </span>
+                    }
+                    else
+                    {
+                        <div class="module-badge">
+                            <span class="pulse-dot"></span>
+                            AERIE Enterprise Gateway
+                        </div>
+                        <span style="font-size: 0.85rem; color: var(--color-text-muted);">
+                            Please select Farmer or Broker portal
+                        </span>
+                    }
+                </div>
+
+                <div class="top-bar-right">
+                    @if (isAuthenticated)
+                    {
+                        <div class="user-profile-pill">
+                            <div class="user-avatar" style="background: @(isBroker ? "#0284c7" : "#059669"); color: white;">
+                                @(userName.Length > 0 ? userName[0].ToString().ToUpper() : "U")
+                            </div>
+                            <div style="display: flex; flex-direction: column; text-align: left; line-height: 1.15;">
+                                <span style="font-weight: 600; font-size: 0.85rem;">@userName</span>
+                                <span style="font-size: 0.72rem; color: var(--color-text-muted);">@(isBroker ? "Licensed Broker" : "Farm Producer")</span>
+                            </div>
+                        </div>
+
+                        <a asp-page="/Auth/Logout" class="btn btn-outline-danger btn-sm" style="font-size: 0.8rem; padding: 0.35rem 0.75rem; border-radius: var(--radius-md);">
+                            Switch Role / Logout
+                        </a>
+                    }
+                    else
+                    {
+                        <div class="d-flex gap-2">
+                            <a asp-page="/Auth/Login" asp-route-role="Farmer" class="btn btn-sm btn-outline-success">
+                                Farmer Login
+                            </a>
+                            <a asp-page="/Auth/Login" asp-route-role="Broker" class="btn btn-sm btn-primary">
+                                Broker Login
+                            </a>
+                        </div>
+                    }
+                </div>
+            </header>
+
+            <main role="main" class="content-body">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

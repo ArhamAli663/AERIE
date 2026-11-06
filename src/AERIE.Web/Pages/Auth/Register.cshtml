@@ -1,0 +1,137 @@
+@page
+@model AERIE.Web.Pages.Auth.RegisterModel
+@{
+    ViewData["Title"] = $"Register as {Model.Role}";
+    Layout = "_Layout";
+    bool isBroker = Model.Role.Equals("Broker", StringComparison.OrdinalIgnoreCase);
+}
+
+<div style="max-width: 580px; margin: 2rem auto;">
+    <!-- Portal Header Banner -->
+    <div style="text-align: center; margin-bottom: 1.5rem;">
+        <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 16px; background: @(isBroker ? "#e0f2fe" : "#ecfdf5"); color: @(isBroker ? "#0284c7" : "#059669"); margin-bottom: 0.75rem;">
+            @if (isBroker)
+            {
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+            }
+            else
+            {
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            }
+        </div>
+        <h2 style="font-weight: 700; font-size: 1.5rem; letter-spacing: -0.5px; margin-bottom: 0.25rem;">
+            Register @(isBroker ? "New Brokerage & Trading Firm" : "New Poultry Farm Enterprise")
+        </h2>
+        <p style="color: var(--color-text-muted); font-size: 0.9rem; margin: 0;">
+            Create an isolated multi-tenant company workspace in the AERIE SaaS Ecosystem.
+        </p>
+    </div>
+
+    <!-- Role Switcher -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; background: var(--color-surface-hover); padding: 0.35rem; border-radius: var(--radius-lg); margin-bottom: 1.5rem; border: 1px solid var(--color-border);">
+        <a asp-page="/Auth/Register" asp-route-role="Farmer" 
+           style="text-align: center; padding: 0.65rem 1rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.9rem; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem;"
+           class="@(!isBroker ? "bg-white shadow-sm text-dark border" : "text-muted")">
+            <span>🐓</span>
+            <span>Poultry Farm</span>
+        </a>
+        <a asp-page="/Auth/Register" asp-route-role="Broker" 
+           style="text-align: center; padding: 0.65rem 1rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.9rem; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem;"
+           class="@(isBroker ? "bg-white shadow-sm text-dark border" : "text-muted")">
+            <span>🚛</span>
+            <span>Poultry Broker</span>
+        </a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger" style="border-radius: var(--radius-md); font-size: 0.9rem; margin-bottom: 1.25rem;">
+            <strong>Error:</strong> @Model.ErrorMessage
+        </div>
+    }
+
+    <!-- Registration Form -->
+    <div class="panel-card" style="box-shadow: 0 4px 20px rgba(0,0,0,0.06); border-radius: var(--radius-lg); padding: 1.75rem;">
+        <form method="post">
+            <input type="hidden" name="Role" value="@Model.Role" />
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem;">
+                        @(isBroker ? "Brokerage / Agency Name" : "Farm Enterprise Name") *
+                    </label>
+                    <input type="text" name="CompanyName" value="@Model.CompanyName" required class="form-control" 
+                           placeholder="@(isBroker ? "e.g. Ravi Poultry Commission" : "e.g. Kasur Model Broiler Farm")" />
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem;">
+                        Operating City / District *
+                    </label>
+                    <input type="text" name="City" value="@Model.City" required class="form-control" 
+                           placeholder="e.g. Kasur, Lahore, Faisalabad" />
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem;">
+                        Owner / Manager First Name *
+                    </label>
+                    <input type="text" name="FirstName" value="@Model.FirstName" required class="form-control" placeholder="First Name" />
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem;">
+                        Last Name *
+                    </label>
+                    <input type="text" name="LastName" value="@Model.LastName" required class="form-control" placeholder="Last Name" />
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem;">
+                        Account Email Address *
+                    </label>
+                    <input type="email" name="Email" value="@Model.Email" required class="form-control" placeholder="admin@mycompany.pk" />
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem;">
+                        Contact Phone
+                    </label>
+                    <input type="text" name="ContactPhone" value="@Model.ContactPhone" class="form-control" placeholder="+92 300 1234567" />
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                <div>
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem;">
+                        Password *
+                    </label>
+                    <input type="password" name="Password" required class="form-control" placeholder="Min 8 characters" />
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem;">
+                        Confirm Password *
+                    </label>
+                    <input type="password" name="ConfirmPassword" required class="form-control" placeholder="Confirm password" />
+                </div>
+            </div>
+
+            <button type="submit" class="btn-stitch-primary" style="width: 100%; justify-content: center; padding: 0.75rem; font-size: 1rem; border-radius: var(--radius-md);">
+                Register & Enter @(isBroker ? "Broker" : "Farmer") Portal
+            </button>
+        </form>
+    </div>
+
+    <div style="text-align: center; margin-top: 1.5rem;">
+        <p style="font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 0.75rem;">
+            Already have an enterprise account? 
+            <a asp-page="/Auth/Login" asp-route-role="@Model.Role" style="font-weight: 600; color: var(--color-primary); text-decoration: none;">
+                Sign In to @(isBroker ? "Broker" : "Farmer") Portal
+            </a>
+        </p>
+        <a asp-page="/Index" style="font-size: 0.85rem; color: var(--color-text-subtle); text-decoration: none;">
+            ← Return to AERIE Portal Selection Gateway
+        </a>
+    </div>
+</div>

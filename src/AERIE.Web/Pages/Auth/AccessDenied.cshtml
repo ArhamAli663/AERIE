@@ -1,0 +1,49 @@
+@page
+@model AERIE.Web.Pages.Auth.AccessDeniedModel
+@{
+    ViewData["Title"] = "Access Restricted";
+    Layout = "_Layout";
+}
+
+<div style="max-width: 550px; margin: 3rem auto; text-align: center;">
+    <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%; background: #fee2e2; color: #dc2626; margin-bottom: 1.25rem;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+    </div>
+
+    <h2 style="font-weight: 700; margin-bottom: 0.5rem;">Access Restricted: Portal Boundary</h2>
+    <p style="color: var(--color-text-muted); font-size: 0.95rem; margin-bottom: 1.75rem;">
+        @if (!string.IsNullOrEmpty(Model.Message))
+        {
+            @Model.Message
+        }
+        else
+        {
+            <span>You do not have permission to access this module. In accordance with AERIE multi-tenant isolation, Farmer and Broker workspaces are strictly separated.</span>
+        }
+    </p>
+
+    <div style="display: flex; gap: 1rem; justify-content: center;">
+        @if (Model.UserRole == "Farmer")
+        {
+            <a asp-page="/Farmer/Dashboard" class="btn-stitch-primary">
+                Return to Farmer Workspace
+            </a>
+        }
+        else if (Model.UserRole == "Broker")
+        {
+            <a asp-page="/Broker/Dashboard" class="btn-stitch-primary">
+                Return to Broker Workspace
+            </a>
+        }
+        else
+        {
+            <a asp-page="/Index" class="btn-stitch-primary">
+                Return to Portal Selection
+            </a>
+        }
+
+        <a asp-page="/Auth/Logout" class="btn-stitch-secondary">
+            Switch Role / Sign Out
+        </a>
+    </div>
+</div>
